@@ -203,3 +203,7 @@ class ClusterWrap(base):
         if init_centers is not None:
             unique_states = unique_states[-(n_states-len(init_centers)):]
         np.save("./data/unique_states.npy", unique_states)
+
+        # save number of states in txt file for ease of inspection
+        with open('./data/unique_states.txt', 'w') as f:
+              f.write('%d' % unique_states.shape[0])

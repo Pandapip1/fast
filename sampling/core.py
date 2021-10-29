@@ -348,6 +348,7 @@ def _move_cluster_data(msm_dir, rebuild_num, analysis_obj=None):
             "/" + base_folder + str(rebuild_num)
         cmds.append(cmd)
     # run move commands
+    print(cmds)
     _ = tools.run_commands(cmds)
     return
 

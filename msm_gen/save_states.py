@@ -58,10 +58,6 @@ def _save_states(centers_info):
         trj = md.load(
             msm_dir + '/trajectories/' + trj_filename,
             top=top)
-    if save_restarts:
-        trj_full = md.load(
-            msm_dir + '/trajectories_full/' + trj_filename,
-            top=msm_dir + "/restart.gro")
     for num in range(len(states)):
         if save_masses:
             # save center after processing
@@ -76,12 +72,15 @@ def _save_states(centers_info):
             pdb_filename = msm_dir + \
                 "/centers_restarts/state%06d-%02d.gro" % \
                 (states[num], confs[num])
-            center = trj_full[frames[num]]
+            center = md.load_frame(
+                msm_dir + '/trajectories_full/' + trj_filename,
+                frames[num],
+                top=msm_dir + "/restart.gro")
             center.save_gro(pdb_filename)
     if save_masses:
         del trj
     if save_restarts:
-        del trj_full
+        del center
     return
 
 

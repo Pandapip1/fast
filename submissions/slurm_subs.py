@@ -161,7 +161,7 @@ class SlurmSub(base):
     """
     def __init__(
             self, queue, n_tasks=1, n_cpus=1, exclusive=False, email=None,
-            max_time=1500, job_name=None, **kwargs):
+            max_time=1500, job_name=None, env_exports=None, **kwargs):
         self.queue = str(queue)
         self.n_tasks = str(n_tasks)
         self.n_cpus = str(n_cpus)
@@ -172,6 +172,7 @@ class SlurmSub(base):
             self.job_name = 'SlurmSub'
         else:
             self.job_name = str(job_name)
+        self.env_exports = env_exports
         self.kwargs = kwargs
 
     @property
@@ -196,11 +197,15 @@ class SlurmSub(base):
         header = _gen_header(
             self.queue, self.n_tasks, self.n_cpus, self.exclusive, self.email,
             self.max_time, self.job_name, self.kwargs)
-        # add commands
-        if type(cmds) is str:
-            sub_file = header + cmds
+        # add env exports
+        if self.env_exports is not None:
+            sub_file = header + self.env_exports
         else:
             sub_file = header
+        # add commands
+        if type(cmds) is str:
+            sub_file += cmds
+        else:
             for cmd in cmds:
                 sub_file += cmd
         # catalog home dir and switch to output dir

@@ -3,15 +3,18 @@ from .analysis.contacts import ContactsWrap
 from .analysis.minimize import MinimizeWrap
 from .analysis.rmsd import RMSDWrap
 from .analysis.pockets import PocketWrap
+from .analysis.pockets import SpecificPockets
 from .analysis.distances import DistWrap
 from .analysis.specific_contacts import SpecificContactsWrap
-from .analysis.multi_interface_dissociation import MultipleInterfaceDissociationWrap
+from .analysis.interface_contacts import InterfaceContactWrap
+from .analysis.multi_interface_dissociation import MultipleInterfaceDissociationWrap, ConstrainedTargetInterfaceDissociationWrap
 
 # simulations wrapper
 from .md_gen.gromax import Gromax, GromaxProcessing
 
 # clustering wrapper
 from .msm_gen.clustering import ClusterWrap
+from .msm_gen.sasa_clustering import SASAClusterWrap
 
 # save states wrapper
 from .msm_gen.save_states import SaveWrap
