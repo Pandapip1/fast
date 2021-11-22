@@ -4,6 +4,8 @@ from .analysis.minimize import MinimizeWrap
 from .analysis.rmsd import RMSDWrap
 from .analysis.pockets import PocketWrap
 from .analysis.distances import DistWrap
+from .analysis.specific_contacts import SpecificContactsWrap
+from .analysis.multi_interface_dissociation import MultipleInterfaceDissociationWrap
 
 # simulations wrapper
 from .md_gen.gromax import Gromax, GromaxProcessing

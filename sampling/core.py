@@ -620,6 +620,7 @@ class AdaptiveSampling(base):
             # save starting state in msm directory. Will be used to load
             # and save trajectories for restarting simulations
             try:
+                #tools.run_commands('cp ' + self.initial_state + ' restart.gro')
                 self.initial_state_md.save_gro(msm_dir + '/restart.gro')
             except:
                 logging.warning(

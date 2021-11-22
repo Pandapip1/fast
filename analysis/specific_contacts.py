@@ -51,9 +51,8 @@ def best_hummer_q(traj, native, atom_pairs):
           mechanisms in atomistic simulations" PNAS (2013)
     """
 
-    BETA_CONST = 50  # 1/nm
-    LAMBDA_CONST = 1.8
-    NATIVE_CUTOFF = native_cutoff  # nanometers
+    BETA_CONST = 10  # 1/nm, decreased to decrease slope
+    LAMBDA_CONST = 2.5 # increased to encourage large changes
 
     # compute these distances for the whole trajectory
     r = md.compute_distances(traj, atom_pairs)
@@ -61,6 +60,9 @@ def best_hummer_q(traj, native, atom_pairs):
     r0 = md.compute_distances(native[0], atom_pairs)
     q = np.mean(
         1.0 / (1 + np.exp(BETA_CONST * (r - LAMBDA_CONST * r0))), axis=1)
+
+    print('total number of contacts is: %s' %atom_pairs.shape[0])
+    print('value of q: %s' %q)
     return q
 
 
@@ -125,6 +127,6 @@ class SpecificContactsWrap(base_analysis):
             # load centers
             centers = md.load(
                 "./data/full_centers.xtc", top=self.base_struct_md)
-            contacts = best_hummer_q(centers, self.base_struct_md, atom_pairs)
+            contacts = best_hummer_q(centers, self.base_struct_md, self.atom_pairs_vals)
             np.save(self.output_name, contacts)
 

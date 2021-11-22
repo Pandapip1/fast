@@ -1,4 +1,5 @@
-# Author: Maxwell I. Zimmerman <mizimmer@wustl.edu>
+# Authors: Maxwell I. Zimmerman <mizimmer@wustl.edu>, Artur Meller <ameller@wustl.edu>
+# Michael Ward <mdward@wustl.edu>
 # Contributors:
 # Copywright (C) 2017, Washington University in St. Louis
 # All rights reserved.
@@ -21,6 +22,7 @@ from .. import tools
 from enspara.geometry import pockets
 from functools import partial
 from multiprocessing import Pool
+import tensorflow as tf
 
 
 #######################################################################
@@ -44,19 +46,14 @@ def _save_pocket_element(save_info):
     # make state analysis directory and save pdb coords
     _ = tools.run_commands('mkdir ' + output_folder)
     pok_output_name = output_folder + "/" + state_name + "_pockets.pdb"
+    pocket_element.save_pdb(pok_output_name)
+    # generate pocket size array (first element is the total size)
+    pok_sizes = np.array(
+        [len(list(resi.atoms)) for resi in list(pocket_element.top.residues)])
+    pok_sizes = np.append(pok_sizes.sum(), pok_sizes)
+    # save pocket sizes
     pok_details_output_name = output_folder + "/pocket_sizes.dat"
-    if pocket_element is not None:
-        pocket_element.save_pdb(pok_output_name)
-        # generate pocket size array (first element is the total size)
-        pok_sizes = np.array(
-            [len(list(resi.atoms)) for resi in list(pocket_element.top.residues)])
-        pok_sizes = np.append(pok_sizes.sum(), pok_sizes)
-        # save pocket sizes
-        np.savetxt(pok_details_output_name, pok_sizes, fmt='%d')
-    else:
-        #Recent update to enspara returns None for no pockets instead of empty MDtraj traj
-        pocket_element=md.Trajectory(np.zeros((0,3)),md.Topology())
-        pocket_element.save_pdb(pok_output_name)
+    np.savetxt(pok_details_output_name, pok_sizes, fmt='%d')
     return
     
 
@@ -177,13 +174,101 @@ def _determine_pocket_neighbors(file_info):
         close_iis.append(np.where(dists < distance_cutoff)[0])
     close_iis = np.unique(np.concatenate(close_iis))
     return len(close_iis)
-    
 
-class PocketWrap(base_analysis):
-    """Analysis wrapper for pocket analysis using ligsite.
+def make_pocket_predictions(model, nn_path, centers, opt=tf.keras.optimizers.Adam()):
+    """Predicts a pocket increase probability for each residue
+    in each state in the centers
+
+    model : object, MQAModel
+        An object of class MQA Model which specifies the architecture
+        of the network
+
+
+    nn_path : str
+        A path specifying the location of the input model's index
+        and dat files. This path is passed to load_checkpoint
+
+    centers : MDTraj trajectory
+        A trajectory containing the structures for which to make a prediction
+    """
+    from models import MQAModel
+    from util import load_checkpoint
+
+    # Load model weights from checkpoint
+    load_checkpoint(model, opt, nn_path)
+
+    aa2index = {
+        'ALA': 0,
+        'ARG': 1,
+        'ASN': 2,
+        'ASP': 3,
+        'CYS': 4,
+        'CYM': 4,
+        'GLU': 6,
+        'GLN': 5,
+        'GLY': 7,
+        'HIS': 8,
+        'ILE': 9,
+        'LEU': 10,
+        'LYS': 11,
+        'MET': 12,
+        'PHE': 13,
+        'PRO': 14,
+        'SER': 15,
+        'THR': 16,
+        'TRP': 17,
+        'TYR': 18,
+        'VAL': 19
+    }
+
+    pdbs = []
+    for s in centers:
+        prot_iis = s.top.select('protein and (name N or name CA or name C or name O)')
+        prot_bb = s.atom_slice(prot_iis)
+        pdbs.append(prot_bb)
+
+    B = len(centers)
+    L_max = np.max([pdb.top.n_residues for pdb in pdbs])
+    X = np.zeros([B, L_max, 4, 3], dtype=np.float32)
+    S = np.zeros([B, L_max], dtype=np.int32)
+
+    for i, prot_bb in enumerate(pdbs):
+        l = prot_bb.top.n_residues
+        xyz = prot_bb.xyz.reshape(l, 4, 3)
+        seq = [r.name for r in prot_bb.top.residues]
+
+        S[i, :l] = np.asarray([aa2index[a] for a in seq], dtype=np.int32)
+        X[i] = np.pad(xyz, [[0, L_max-l], [0,0], [0,0]], 'constant', constant_values=(np.nan, ))
+
+    isnan = np.isnan(X)
+    mask = np.isfinite(np.sum(X, (2,3))).astype(np.float32)
+    X[isnan] = 0.
+    X = np.nan_to_num(X)
+
+    prediction = model(X, S, mask, train=False, res_level=True)
+    return prediction
+
+
+class PocketPredictionWrap(base_analysis):
+    """Analysis wrapper for pocket analysis using ligsite and
+       pocket prediction using the geometric vector perceptron.
+       This method balances selecting states with high pocket
+       volumes and those predicted to have high pocket volumes
+       in the future.
 
     Parameters
     ----------
+   model : object, MQAModel
+        An object of class MQA Model which specifies the architecture
+        of the network
+    nn_path : str
+        A path specifying the location of the input model's index
+        and dat files. This path is passed to load_checkpoint
+    alpha : float, default = 0.6
+        Defines how to weight predctive component with the current
+        pocket volume. This is the percent weight that is given 
+        to the predictive component.
+        i.e. r_i = (1 - alpha) * current_score + alpha * prediction_score
     pocket_reporter : object, default = None,
         How to rank pocket volumes. A specific object that calls
         `parse_pockets` must be supplied. If None are specified,
@@ -217,9 +302,11 @@ class PocketWrap(base_analysis):
         The filename of the final rankings.
     """
     def __init__(
-            self, pocket_reporter=None, grid_spacing=0.1, probe_radius=0.14,
-            min_rank=4, min_cluster_size=0, n_cpus=1, build_full=True,
-            atom_indices=None, **kwargs):
+            self, model, nn_path, alpha=0.6, pocket_reporter=None, grid_spacing=0.1,
+            probe_radius=0.14, min_rank=4, min_cluster_size=0, n_cpus=1,
+            build_full=True, atom_indices=None, **kwargs):
+        self.model = model
+        self.nn_path = nn_path
         self.pocket_reporter = pocket_reporter
         if self.pocket_reporter is None:
             self.pocket_reporter = TopPockets(n_cpus=n_cpus)
@@ -243,7 +330,7 @@ class PocketWrap(base_analysis):
 
     @property
     def class_name(self):
-        return "PocketsWrap"
+        return "PocketPredictionWrap"
 
     @property
     def config(self):
@@ -264,7 +351,7 @@ class PocketWrap(base_analysis):
 
     @property
     def base_output_name(self):
-        return "pockets_per_state"
+        return "composite_pocket_rank_per_state"
 
     def run(self):
         # determine if analysis was already done
@@ -295,7 +382,14 @@ class PocketWrap(base_analysis):
                     pdb_filenames[n_processed_states:], self.output_folder,
                     self.n_cpus)
             # parses log files for pockets and save them
+            # pockets contains pocket volumes per state
             pockets = self.pocket_reporter.parse_pockets(self.output_folder)
-            np.save(self.output_name, pockets)
-        
+
+            # make a prediction
+            predictions = make_pocket_predictions(self.model,
+                self.nn_path, centers)
+
+            # feature scale
+            # other option is just to use predictions
+            np.save(self.output_name, predictions)
 

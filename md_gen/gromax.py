@@ -191,6 +191,9 @@ class Gromax(base):
         if type(struct) is md.Trajectory:
             struct.save_gro(self.output_dir + '/start.gro')
             self.start_name = self.output_dir + '/start.gro'
+        #elif type(struct) is str:
+        #    tools.run_commands('cp ' + struct + ' start.gro')
+        #    self.start_name = self.output_dir + '/start.gro'
         else:
             self.start_name = os.path.abspath(struct)
         # move over additional topology files
