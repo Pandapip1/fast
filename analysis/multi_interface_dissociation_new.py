@@ -136,7 +136,7 @@ def calculate_dissociation_score(traj, interface_list, center_of_mass=True,
         return score_per_interface.sum(axis=1)
 
 
-class MultipleInterfaceDissociationWrap(base_analysis):
+class MultipleInterfaceDissociationWrapNew(base_analysis):
     """Computes a dissociaiton score for a multi-interface dissociation simulation.
 
     Parameters
@@ -196,7 +196,7 @@ class MultipleInterfaceDissociationWrap(base_analysis):
 
     @property
     def class_name(self):
-        return "MultipleInterfaceDissociationWrapper"
+        return "MultipleInterfaceDissociationWrapperNew"
 
     @property
     def config(self):
