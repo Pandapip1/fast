@@ -86,7 +86,8 @@ def _parse_pocket_file(pocket_info):
     # open file and take value at position `pocket_num`
     pocket_sizes = np.loadtxt(filename, dtype=int)
     if pocket_num is None:
-        psize = np.sum(pocket_sizes)
+        # the first entry in pocket sizes is the sum of all pocket sizes
+        psize = pocket_sizes[0]
     else:
         psize = pocket_sizes[pocket_num]
     return psize
