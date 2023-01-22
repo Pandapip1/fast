@@ -357,6 +357,7 @@ class PocketWrap(base_analysis):
                     self.n_cpus)
             # parses log files for pockets and save them
             pockets = self.pocket_reporter.parse_pockets(self.output_folder)
+            print(self.output_name, pockets)
             np.save(self.output_name, pockets)
         
 
