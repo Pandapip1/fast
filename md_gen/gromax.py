@@ -55,6 +55,19 @@ class GromaxProcessing(base):
     def run(self):
         if self.align_group is None:
             trjconv_cmd = ""
+        elif self.pbc == 'cluster':
+            trjconv_alignment = \
+                "echo '" + self.align_group + " " +  self.align_group + " 0' | gmx trjconv " + \
+                "-f frame0.xtc -o frame0_aligned.xtc -s md.tpr -center " + \
+                "-pbc "+self.pbc+" -ur "+self.ur
+			trjconv_output_groups = \
+                "echo '" + self.align_group + " " + self.align_group + " " + self.output_group + \
+                "' | gmx trjconv -f frame0.xtc -o frame0_masses.xtc" + \
+                " -s md.tpr -center -pbc "+self.pbc+" -ur "+self.ur
+            if self.index_file is not None:
+                trjconv_alignment += " -n " + self.index_file
+                trjconv_output_groups += " -n " + self.index_file
+            trjconv_cmd = trjconv_alignment + "\n" + trjconv_output_groups + "\n"	 
         else:
             trjconv_alignment = \
                 "echo '" + self.align_group + " 0' | gmx trjconv " + \
