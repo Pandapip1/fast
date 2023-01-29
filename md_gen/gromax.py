@@ -29,11 +29,16 @@ class GromaxProcessing(base):
     determining output coordinates."""
     def __init__(
             self, align_group=None, output_group=None, pbc='mol',
-            ur='compact', index_file=None):
+            ur='compact', index_file=None, singularity=False, source_file=None):
         self.align_group = str(align_group)
         self.output_group = str(output_group)
         self.pbc = pbc
         self.ur = ur
+        self.singularity = singularity
+        if source_file is None;
+            self.source_file = source_file
+        else:
+            self.source_file = os.path.abspath(source_file)
         if index_file is None:
             self.index_file = index_file
         else:
@@ -55,9 +60,13 @@ class GromaxProcessing(base):
     def run(self):
         if self.align_group is None:
             trjconv_cmd = ""
+        elif self.singularity and self.source_file and self.index_file:
+            trjconv_alignment = f"echo '{self.align_group} {self.align_group} 0' | singularity run {self.source_file} gmx trjconv -f frame0.xtc -o frame0_aligned.xtc -s md.tpr -center -pbc {self.pbc} -ur {self.ur} -n {self.index_file}\n"
+            trjconv_output_gropus = f"echo '{self.align_group} {self.align_group} {self.output_group}' | singularity run {self.source_file} gmx trjconv -f frame0.xtc -o frame0_aligned.xtc -s md.tpr -center -pbc {self.pbc} -ur {self.ur} -n {self.index_file} \n"
+            trjconv_cmd = trjconv_alignment + trjconv_output_groups
         elif self.pbc == 'cluster':
             trjconv_alignment = \
-                "echo '" + self.align_group + " " +  self.align_group + " 0' | gmx trjconv " + \
+                "echo '" + self.align_group + " " +  self.align_group + f" 0' | gmx trjconv " + \
                 "-f frame0.xtc -o frame0_aligned.xtc -s md.tpr -center " + \
                 "-pbc "+self.pbc+" -ur "+self.ur
             trjconv_output_groups = \
@@ -144,7 +153,7 @@ class Gromax(base):
         # p100.q queue.
         if submission_obj is None:
             self.submission_obj = submissions.slurm_subs.SlurmSub(
-                'p100.q', n_cpus=self.n_cpus, job_name='gromax_md')
+                'p100', n_cpus=self.n_cpus, job_name='gromax_md')
         else:
             self.submission_obj = submission_obj
         # determine index file
@@ -168,6 +177,9 @@ class Gromax(base):
             self.source_file = source_file
         else:
             self.source_file = os.path.abspath(source_file)
+            # check for singularity sif file
+            if ".sif" in self.source_file:
+                self.singularity = True
         self.kwargs = kwargs
 
     @property
@@ -236,6 +248,9 @@ class Gromax(base):
         # optionally add an index file
         if self.index_file is not None:
             grompp_cmd +=  ' -n ' + self.index_file
+        # if singularity prepend the singularity run
+        if self.singularity:
+            grompp_cmd = f'singularity run {self.source_file} {grompp_cmd}'
         grompp_cmd += '\n'
         # generate mdrun command
         # JRP added '-cpi state -g md' on 07-01-2019
@@ -257,6 +272,8 @@ class Gromax(base):
         additions = " ".join(
             ['-' + i[0] + ' ' + i[1] for i in np.transpose([keys, values])])
         mdrun_cmd += ' ' + additions + '\n'
+        if self.singularity:
+            mdrun_cmd = f'singularity run {self.source_file} {mdrun_cmd}'
         # check for previous tpr for continuation
         if check_continue:
             tpr_filename = self.output_dir + "/md.tpr"
