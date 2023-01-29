@@ -237,7 +237,7 @@ class Gromax(base):
         else:
             base_output_name = 'md'
         # source command
-        if self.source_file is None:
+        if self.source_file is None or self.singularity:
             source_cmd = ''
         else:
             source_cmd = 'source ' + self.source_file + '\n\n'
