@@ -256,7 +256,7 @@ class Gromax(base):
         # JRP added '-cpi state -g md' on 07-01-2019
         mdrun_cmd = 'gmx mdrun -cpi state -g md -s ' + base_output_name + ' -o ' + \
             base_output_name + ' -c after_' + base_output_name + ' -v -nt ' + \
-            str(self.n_cpus)
+            str(self.n_cpus) + '-nb gpu -bonded gpu -pme gpu'
         # if an MD run, make default name for trajectory
         if not self.min_run:
             mdrun_cmd += ' -x frame0'
