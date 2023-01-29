@@ -62,7 +62,7 @@ class GromaxProcessing(base):
             trjconv_cmd = ""
         elif self.singularity and self.source_file and self.index_file:
             trjconv_alignment = f"echo '{self.align_group} {self.align_group} 0' | singularity run {self.source_file} gmx trjconv -f frame0.xtc -o frame0_aligned.xtc -s md.tpr -center -pbc {self.pbc} -ur {self.ur} -n {self.index_file}\n"
-            trjconv_output_gropus = f"echo '{self.align_group} {self.align_group} {self.output_group}' | singularity run {self.source_file} gmx trjconv -f frame0.xtc -o frame0_aligned.xtc -s md.tpr -center -pbc {self.pbc} -ur {self.ur} -n {self.index_file} \n"
+            trjconv_output_groups = f"echo '{self.align_group} {self.align_group} {self.output_group}' | singularity run {self.source_file} gmx trjconv -f frame0.xtc -o frame0_aligned.xtc -s md.tpr -center -pbc {self.pbc} -ur {self.ur} -n {self.index_file} \n"
             trjconv_cmd = trjconv_alignment + trjconv_output_groups
         elif self.pbc == 'cluster':
             trjconv_alignment = \
