@@ -35,7 +35,7 @@ class GromaxProcessing(base):
         self.pbc = pbc
         self.ur = ur
         self.singularity = singularity
-        if source_file is None;
+        if source_file is None:
             self.source_file = source_file
         else:
             self.source_file = os.path.abspath(source_file)
