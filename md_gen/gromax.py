@@ -180,6 +180,8 @@ class Gromax(base):
             # check for singularity sif file
             if ".sif" in self.source_file:
                 self.singularity = True
+            else:
+                self.singularity = False
         self.kwargs = kwargs
 
     @property
