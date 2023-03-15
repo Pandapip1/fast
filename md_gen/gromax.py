@@ -28,10 +28,11 @@ class GromaxProcessing(base):
     """Generates gromacs commands for aligning a trajectory and
     determining output coordinates."""
     def __init__(
-            self, align_group=None, output_group=None, pbc='mol',
+            self, align_group=None, output_group=None, center_group=None, pbc='mol',
             ur='compact', index_file=None, singularity=False, source_file=None):
         self.align_group = str(align_group)
         self.output_group = str(output_group)
+        self.center_group = str(center_group)
         self.pbc = pbc
         self.ur = ur
         self.singularity = singularity
@@ -66,11 +67,11 @@ class GromaxProcessing(base):
             trjconv_cmd = trjconv_alignment + trjconv_output_groups
         elif self.pbc == 'cluster':
             trjconv_alignment = \
-                "echo '" + self.align_group + " " +  self.align_group + f" 0' | gmx trjconv " + \
+                "echo '" + self.align_group + " " +  self.center_group + f" 0' | gmx trjconv " + \
                 "-f frame0.xtc -o frame0_aligned.xtc -s md.tpr -center " + \
                 "-pbc "+self.pbc+" -ur "+self.ur
             trjconv_output_groups = \
-                "echo '" + self.align_group + " " + self.align_group + " " + self.output_group + \
+                "echo '" + self.align_group + " " + self.center_group + " " + self.output_group + \
                 "' | gmx trjconv -f frame0.xtc -o frame0_masses.xtc" + \
                 " -s md.tpr -center -pbc "+self.pbc+" -ur "+self.ur
             if self.index_file is not None:
