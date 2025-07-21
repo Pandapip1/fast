@@ -77,7 +77,7 @@ class GromacsProcessing(base):
         cmd_output = self.build_trjconv_command(
             "frame0.xtc", "frame0_masses.xtc", output_groups
         )
-        return f"{cmd_align}\n{cmd_output}\n"
+        return f"{cmd_align}\n{cmd_output}"
 
     def _group_params_by_pbc(self):
         match self.pbc:
@@ -248,5 +248,13 @@ class Gromacs(base):
                 'else\n    echo "Found md.tpr, skipping grompp"\nfi\n'
             )
 
-        cmds = [setup_cmd, grompp_cmd, mdrun_cmd, self.processing_obj.run()]
+        cmds = [
+            setup_cmd,
+            "\n\n",
+            grompp_cmd,
+            "\n\n",
+            mdrun_cmd,
+            "\n\n",
+            self.processing_obj.run()
+        ]
         return self.submission_obj.run(cmds, output_dir=self.output_dir)

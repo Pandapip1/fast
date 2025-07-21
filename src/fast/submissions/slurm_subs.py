@@ -34,7 +34,7 @@ def _make_sbatch_lines(kwargs):
 
 
 def _gen_header(
-    queue, n_tasks, n_cpus, exclusive, email, max_time, job_name, mem_per_cpu, kwargs
+    queue, n_tasks, n_cpus, exclusive, email, max_time, job_name, mem_per_cpu, nice, kwargs
 ):
     """Generates an sbatch header file"""
     header = "#!/bin/bash\n\n"
@@ -58,6 +58,11 @@ def _gen_header(
             + "#SBATCH --mail-user="
             + email
             + "\n"
+        )
+    if nice is not None:
+        header += (
+            "\n# nice value\n"
+            f"#SBATCH --nice={nice}\n\n"
         )
     additions = _make_sbatch_lines(kwargs)
     header += "\n# additional specs\n"
@@ -162,6 +167,9 @@ class SlurmSub(base):
         The maximum time for submission job in hours.
     job_name : str, default = None,
         The name of the submission job.
+    nice : str, default = None
+        An override to the nice value. If you're hammering
+        the cluster, set this pretty high (10000 is max).
     """
 
     def __init__(
@@ -175,6 +183,7 @@ class SlurmSub(base):
         max_time=1500,
         job_name=None,
         env_exports=None,
+        nice=None,
         **kwargs
     ):
         self.queue = str(queue)
@@ -189,6 +198,7 @@ class SlurmSub(base):
         else:
             self.job_name = str(job_name)
         self.env_exports = env_exports
+        self.nice = nice
         self.kwargs = kwargs
 
     @property
@@ -206,6 +216,7 @@ class SlurmSub(base):
             "email": self.email,
             "max_time": self.max_time,
             "job_name": self.job_name,
+            "nice": self.nice
         }
         config_dict.update(self.kwargs)
         return config_dict
@@ -221,6 +232,7 @@ class SlurmSub(base):
             self.max_time,
             self.job_name,
             self.mem_per_cpu,
+            self.nice,
             self.kwargs,
         )
         # add env exports

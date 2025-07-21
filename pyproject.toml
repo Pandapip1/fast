@@ -17,7 +17,15 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "black",
-  "ruff"
+  "ruff",
+  "pytest"
+]
+pocketminer = [
+  "pypocketminer",
+  "scipy",
+  "trimesh",
+  "networkx",
+  "manifold3d" # TODO replace with blender
 ]
 
 [tool.setuptools]
@@ -25,3 +33,9 @@ package-dir = { "" = "src" }
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+testpaths = [
+  "tests"
+]
