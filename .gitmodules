@@ -1,0 +1,4 @@
+[submodule "pocketminer"]
+	path = pocketminer
+	url = https://github.com/Mickdub/gvp.git
+	branch = pocket_pred
