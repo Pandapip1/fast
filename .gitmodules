@@ -1,4 +1,4 @@
-[submodule "pocketminer"]
+[submodule "src/fast/pocketminer"]
 	path = src/fast/pocketminer
 	url = https://github.com/Mickdub/gvp.git
 	branch = pocket_pred
