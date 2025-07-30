@@ -15,8 +15,8 @@ import numpy as np
 import os
 import subprocess as sp
 import time
-from .. import tools
-from ..base import base
+from fast import tools
+from fast.base import base
 
 
 #######################################################################

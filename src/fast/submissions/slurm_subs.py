@@ -14,9 +14,9 @@ import os
 import subprocess as sp
 import time
 from enspara.util import array as ra
-from .. import tools
-from ..base import base
-from ..exception import UnexpectedResult
+from fast import tools
+from fast.base import base
+from fast.exception import UnexpectedResult
 
 #######################################################################
 # code

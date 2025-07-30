@@ -16,9 +16,9 @@ import enspara.tpt
 import numpy as np
 import time
 import scipy.sparse as spar
-from . import scalings
-from ..base import base
-from ..exception import ConvergenceWarning, ImproperlyConfigured
+from fast.sampling import scalings
+from fast.base import base
+from fast.exception import ConvergenceWarning, ImproperlyConfigured
 
 
 ########################################################################

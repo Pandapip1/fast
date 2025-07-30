@@ -21,13 +21,13 @@ import pickle
 import scipy.io
 import subprocess as sp
 import time
-from . import rankings
-from .. import tools
-from ..base import base
-from ..exception import DataInvalid, MissingData
-from ..msm_gen import SaveWrap
-from ..submissions import slurm_subs
-from ..submissions import lsf_subs
+from fast.sampling import rankings
+from fast import tools
+from fast.base import base
+from fast.exception import DataInvalid, MissingData
+from fast.msm_gen import SaveWrap
+from fast.submissions import slurm_subs
+from fast.submissions import lsf_subs
 from enspara.msm import builders, MSM
 from enspara.util import array as ra
 from functools import partial

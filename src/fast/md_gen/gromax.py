@@ -14,9 +14,9 @@
 import mdtraj as md
 import numpy as np
 import os
-from .. import tools
-from .. import submissions
-from ..base import base
+from fast import tools
+from fast import submissions
+from fast.base import base
 
 
 #######################################################################

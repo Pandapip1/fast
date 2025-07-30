@@ -20,8 +20,8 @@ import numpy as np
 import os
 import time
 from .save_states import save_states
-from .. import tools
-from ..base import base
+from fast import tools
+from fast.base import base
 from enspara import cluster
 from enspara.util import array as ra
 from enspara.util.load import load_as_concatenated

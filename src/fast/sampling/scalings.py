@@ -12,7 +12,7 @@
 
 
 import numpy as np
-from ..base import base
+from fast.base import base
 
 
 #######################################################################
