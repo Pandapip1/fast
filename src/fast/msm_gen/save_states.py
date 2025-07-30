@@ -18,7 +18,7 @@ import numpy as np
 from enspara.util import array as ra
 from enspara.util.load import load_as_concatenated
 from multiprocessing import Pool
-from ..base import base
+from fast.base import base
 
 
 #######################################################################

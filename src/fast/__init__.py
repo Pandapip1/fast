@@ -1,28 +1,28 @@
 # analysis objects
-from .analysis.contacts import ContactsWrap
-from .analysis.minimize import MinimizeWrap
-from .analysis.rmsd import RMSDWrap
-from .analysis.pockets import PocketWrap
-from .analysis.distances import DistWrap
+from fast.analysis.contacts import ContactsWrap
+from fast.analysis.minimize import MinimizeWrap
+from fast.analysis.rmsd import RMSDWrap
+from fast.analysis.pockets import PocketWrap
+from fast.analysis.distances import DistWrap
 
 # simulations wrapper
-from .md_gen.gromax import Gromax, GromaxProcessing
+from fast.md_gen.gromax import Gromax, GromaxProcessing
 
 # clustering wrapper
-from .msm_gen.clustering import ClusterWrap
+from fast.msm_gen.clustering import ClusterWrap
 
 # save states wrapper
-from .msm_gen.save_states import SaveWrap
+from fast.msm_gen.save_states import SaveWrap
 
 # rankings
-from .sampling import rankings
+from fast.sampling import rankings
 
 # scalings
-from .sampling import scalings
+from fast.sampling import scalings
 
 # submission wrappers
-from .submissions.os_sub import OSWrap, SPSub
-from .submissions.slurm_subs import SlurmWrap, SlurmSub
+from fast.submissions.os_sub import OSWrap, SPSub
+from fast.submissions.slurm_subs import SlurmWrap, SlurmSub
 
 # core adaptive sampling class
-from .sampling.core import AdaptiveSampling
+from fast.sampling.core import AdaptiveSampling

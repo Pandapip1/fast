@@ -18,8 +18,8 @@ import mdtraj_upside as mu # has function for parsing Upside trajectories into M
 import numpy as np
 import os
 import upside_engine as ue # computing energies 
-from .base_analysis import base_analysis
-from .. import tools
+from fast.analysis.base_analysis import base_analysis
+from fast import tools
 
 
 #######################################################################

@@ -1,2 +1,2 @@
-from .clustering import ClusterWrap
-from .save_states import SaveWrap
+from fast.msm_gen.clustering import ClusterWrap
+from fast.msm_gen.save_states import SaveWrap

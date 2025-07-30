@@ -5,9 +5,9 @@
 
 import numpy as np
 import os
-from .base_analysis import base_analysis
+from fast.analysis.base_analysis import base_analysis
 
-from ..pocketminer.validate_performance_on_xtals import process_strucs, predict_on_xtals
+from fast.pocketminer.validate_performance_on_xtals import process_strucs, predict_on_xtals
 
 from validate_performance_on_xtals import process_strucs, predict_on_xtals
 import tempfile

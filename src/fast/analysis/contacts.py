@@ -16,8 +16,8 @@ import itertools
 import mdtraj as md
 import numpy as np
 import os
-from .base_analysis import base_analysis
-from .. import tools
+from fast.analysis.base_analysis import base_analysis
+from fast import tools
 
 
 #######################################################################

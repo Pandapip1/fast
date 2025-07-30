@@ -16,10 +16,10 @@ import itertools
 import mdtraj as md
 import numpy as np
 import os
-from .base_analysis import base_analysis
-from .. import tools
-from ..md_gen.gromax import Gromax
-from ..submissions.os_sub import SPSub, OSWrap
+from fast.analysis.base_analysis import base_analysis
+from fast import tools
+from fast.md_gen.gromax import Gromax
+from fast.submissions.os_sub import SPSub, OSWrap
 from multiprocessing import Pool
 
 
