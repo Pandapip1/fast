@@ -38,8 +38,10 @@ class UpsideProcessing(base):
         return {"align": self.align}
 
     def run(self, input_file, output_file):
+        process_upside_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "process_upside.py")
         process_cmd = (
-            "/home/mizimmer/programs/fast/md_gen/process_upside.py "
+            process_upside_path
+            + " "
             + " --input_file "
             + input_file
             + " --output_file "
