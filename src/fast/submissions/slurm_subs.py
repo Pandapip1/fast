@@ -35,12 +35,15 @@ def _make_sbatch_lines(kwargs):
 
 
 def _gen_header(
-        queue, n_tasks, n_cpus, exclusive, email, max_time, job_name, kwargs):
+        queue, n_tasks, n_cpus, exclusive, email, max_time, job_name,
+        mem_per_cpu, kwargs):
     """Generates an sbatch header file"""
     header = '#!/bin/bash\n\n'
     header += '# specify resources\n' + \
         '#SBATCH --ntasks=' + n_tasks + '\n'\
         '#SBATCH --cpus-per-task=' + n_cpus + '\n'
+    if mem_per_cpu is not None:
+        header += '#SBATCH --mem-per-cpu=' + str(mem_per_cpu) + '\n'
     if exclusive:
         header += '#SBATCH --exclusive\n'
     header += '\n# max wallclock time\n' + \
@@ -50,7 +53,7 @@ def _gen_header(
     header += '\n# queue\n' + \
         '#SBATCH --partition=' + queue + '\n'
     if email is not None:
-        header += '\n# mail alert' + \
+        header += '\n# mail alert\n' + \
             '#SBATCH --mail-type=ALL\n' + \
             '#SBATCH --mail-user=' + email + '\n'
     additions = _make_sbatch_lines(kwargs)
@@ -150,6 +153,8 @@ class SlurmSub(base):
         The number of tasks for the submission job.
     n_cpus : int, default = 1,
         Number of cpus to use.
+    mem_per_cpu : str, default='4G',
+        Memory per CPU (e.g., '8G').
     exclusive : bool, default = False,
         To request exclusive use of a node.
     email : str, default = None,
@@ -160,11 +165,13 @@ class SlurmSub(base):
         The name of the submission job.
     """
     def __init__(
-            self, queue, n_tasks=1, n_cpus=1, exclusive=False, email=None,
+            self, queue, n_tasks=1, n_cpus=1, mem_per_cpu='4G',
+            exclusive=False, email=None,
             max_time=1500, job_name=None, env_exports=None, **kwargs):
         self.queue = str(queue)
         self.n_tasks = str(n_tasks)
         self.n_cpus = str(n_cpus)
+        self.mem_per_cpu = mem_per_cpu
         self.exclusive = exclusive
         self.email = email
         self.max_time = str(max_time)
@@ -185,6 +192,7 @@ class SlurmSub(base):
             'queue': self.queue,
             'n_tasks': self.n_tasks,
             'n_cpus': self.n_cpus,
+            'mem_per_cpu': self.mem_per_cpu,
             'exclusive': self.exclusive,
             'email': self.email,
             'max_time': self.max_time,
@@ -196,7 +204,7 @@ class SlurmSub(base):
         # generate header file
         header = _gen_header(
             self.queue, self.n_tasks, self.n_cpus, self.exclusive, self.email,
-            self.max_time, self.job_name, self.kwargs)
+            self.max_time, self.job_name, self.mem_per_cpu, self.kwargs)
         # add env exports
         if self.env_exports is not None:
             sub_file = header + self.env_exports
@@ -216,11 +224,9 @@ class SlurmSub(base):
             output_name = 'slurm_submission'
         os.chdir(output_dir)
         # write submission file
-        f = open(output_name, 'w')
-        f.write(sub_file)
-        f.close()
+        with open(output_name, 'w') as f:
+            f.write(sub_file)
         # run submission file
         job_sub = tools.run_commands('sbatch ' + output_name)[0].split()[-1]
         os.chdir(home_dir)
         return job_sub
-        

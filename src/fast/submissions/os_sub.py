@@ -109,11 +109,10 @@ class SPSub(base):
         if output_dir is None:
             output_dir = os.path.abspath("./")
         os.chdir(output_dir)
-        if  output_name is None:
+        if output_name is None:
             output_name = 'os_submission'
-        f = open(output_name, 'w')
-        f.write("\n".join(cmds))
-        f.close()
+        with open(output_name, 'w') as f:
+            f.write("\n".join(cmds))
         # submit
         p = sp.Popen(
             "bash %s &> os_output.txt" % output_name, shell=True, stdout=sp.PIPE, stderr=sp.PIPE)
@@ -128,4 +127,3 @@ class SPSub(base):
         # return home
         os.chdir(home_dir)
         return job_sub
-

@@ -35,13 +35,15 @@ def _make_bsub_lines(kwargs):
 
 
 def _gen_header(
-        queue, n_tasks, max_time, job_name, kwargs):
-    """Generates an sbatch header file"""
+        queue, n_tasks, max_time, job_name, mem_per_cpu, kwargs):
+    """Generates an bsub header file"""
     header = '#!/bin/bash\n\n'
     header += '# specify resources\n' + \
         '#BSUB -n %d\n' % n_tasks
+    if mem_per_cpu is not None:
+        header += '#BSUB -R "rusage[mem=%s]"\n' % mem_per_cpu
     header += '\n# max wallclock time\n' + \
-        '#BSUB -ptl %d:00\n' % max_time
+        '#BSUB -W %d:00\n' % max_time
     header += '\n# queue\n' + \
         '#BSUB -q %s\n' % queue
     header += '\n# name and output\n' + \
@@ -146,15 +148,19 @@ class LSFSub(base):
         The queue to submit.
     n_tasks : int, default=1,
         The number of tasks for the submission job.
+    mem_per_cpu : str, default=None,
+        Memory per CPU (in MB) e.g. '4000'.
     max_time : int, default = 1500,
         The maximum time for submission job in hours.
     job_name : str, default = None,
         The name of the submission job.
     """
     def __init__(
-            self, queue, n_tasks=1, max_time=1500, job_name=None, **kwargs):
+            self, queue, n_tasks=1, mem_per_cpu=None,
+            max_time=1500, job_name=None, **kwargs):
         self.queue = str(queue)
         self.n_tasks = n_tasks
+        self.mem_per_cpu = mem_per_cpu
         self.max_time = max_time
         if job_name is None:
             self.job_name = 'LSF_Sub'
@@ -171,6 +177,7 @@ class LSFSub(base):
         config_dict = {
             'queue': self.queue,
             'n_tasks': self.n_tasks,
+            'mem_per_cpu': self.mem_per_cpu,
             'max_time': self.max_time,
             'job_name': self.job_name}
         config_dict.update(self.kwargs)
@@ -180,7 +187,7 @@ class LSFSub(base):
         # generate header file
         header = _gen_header(
             self.queue, self.n_tasks, self.max_time, self.job_name,
-            self.kwargs)
+            self.mem_per_cpu, self.kwargs)
         # add commands
         if type(cmds) is str:
             sub_file = header + cmds
@@ -196,12 +203,10 @@ class LSFSub(base):
             output_name = 'lsf_submission'
         os.chdir(output_dir)
         # write submission file
-        f = open(output_name, 'w')
-        f.write(sub_file)
-        f.close()
+        with open(output_name, 'w') as f:
+            f.write(sub_file)
         # run submission file
         job_sub = tools.run_commands('bsub < ' + output_name)[0]
         job_id = job_sub.split()[1].split("<")[-1].split(">")[0]
         os.chdir(home_dir)
         return job_id
-        
