@@ -6,9 +6,10 @@ import numpy as np
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--input_file', help='input upside file')
-parser.add_argument('--output_file', help='output xtc filename')
-parser.add_argument('--align', action='store_true', help='flag to align trj')
+parser.add_argument("--input_file", help="input upside file")
+parser.add_argument("--output_file", help="output xtc filename")
+parser.add_argument("--align", action="store_true", help="flag to align trj")
+
 
 def entry_point():
 
@@ -23,5 +24,5 @@ def entry_point():
     trj.save_xtc(output_file)
 
 
-if __name__=='__main__':
+if __name__ == "__main__":
     entry_point()

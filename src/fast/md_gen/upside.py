@@ -25,6 +25,7 @@ from fast.base import base
 class UpsideProcessing(base):
     """Generates gromacs commands for aligning a trajectory and
     determining output coordinates."""
+
     def __init__(self, align=True):
         self.align = align
 
@@ -34,12 +35,16 @@ class UpsideProcessing(base):
 
     @property
     def config(self):
-        return {'align': self.align}
+        return {"align": self.align}
 
     def run(self, input_file, output_file):
-        process_cmd = "/home/mizimmer/programs/fast/md_gen/process_upside.py " + \
-            " --input_file " + input_file + \
-            " --output_file " + output_file
+        process_cmd = (
+            "/home/mizimmer/programs/fast/md_gen/process_upside.py "
+            + " --input_file "
+            + input_file
+            + " --output_file "
+            + output_file
+        )
         if self.align:
             process_cmd += " --align"
         return process_cmd + "\n"
@@ -66,10 +71,19 @@ class Upside(base):
         Submission object used for running the simulation. Look into
         SlurmSub or OSSub.
     """
+
     def __init__(
-            self, fasta_file, output_name="simulation.up",
-            output_basename='upside_sim', upside_dir=None, processing_obj=None,
-            submission_obj=None, duration='1e7', frame_interval='1e2', temperature=0.5):
+        self,
+        fasta_file,
+        output_name="simulation.up",
+        output_basename="upside_sim",
+        upside_dir=None,
+        processing_obj=None,
+        submission_obj=None,
+        duration="1e7",
+        frame_interval="1e2",
+        temperature=0.5,
+    ):
         self.fasta_file = os.path.abspath(fasta_file)
         self.output_name = output_name
         self.output_basename = output_basename
@@ -91,10 +105,10 @@ class Upside(base):
     @property
     def config(self):
         return {
-            'fasta_file': self.fasta_file,
-            'output_name': self.output_name,
-            'upside_py_dir': self.upside_py_dir,
-            'upside_param_dir': self.upside_param_dir
+            "fasta_file": self.fasta_file,
+            "output_name": self.output_name,
+            "upside_py_dir": self.upside_py_dir,
+            "upside_param_dir": self.upside_param_dir,
         }
 
     def setup_run(self, struct, output_dir=None):
@@ -105,15 +119,15 @@ class Upside(base):
         self.output_dir = os.path.abspath(self.output_dir)
         # generate directory if it doesn't exist
         if not os.path.exists(self.output_dir):
-            tools.run_commands('mkdir ' + self.output_dir)
+            tools.run_commands("mkdir " + self.output_dir)
         # determine starting structure filename
         if isinstance(struct, str):
-            if struct[-3:] == 'gro':
+            if struct[-3:] == "gro":
                 struct = md.load(struct)
         if type(struct) is md.Trajectory:
-            struct.save_pdb(self.output_dir + '/start.pdb')
-            self.start_name = self.output_dir + '/start.pdb'
-        elif (struct is None) or (struct == 'None'):
+            struct.save_pdb(self.output_dir + "/start.pdb")
+            self.start_name = self.output_dir + "/start.pdb"
+        elif (struct is None) or (struct == "None"):
             self.start_name = None
         else:
             self.start_name = os.path.abspath(struct)
@@ -123,40 +137,69 @@ class Upside(base):
         # setup_run
         self.setup_run(struct=struct, output_dir=output_dir)
         # if starting structure is available, process it
-        upside_config_cmd = self.upside_py_dir + "/upside_config.py" \
-            " --output " + self.output_name + \
-            " --fasta " + self.fasta_file + \
-            " --hbond-energy $(cat " + self.upside_param_dir + "/ff_1/hbond)" + \
-            " --dynamic-rotamer-1body " + \
-            " --rotamer-placement " + self.upside_param_dir + "/ff_1/sidechain.h5" + \
-            " --rotamer-interaction " + self.upside_param_dir + "/ff_1/sidechain.h5" + \
-            " --environment " + self.upside_param_dir + "/ff_1/environment.h5" + \
-            " --rama-library " + self.upside_param_dir + "/common/rama.dat" + \
-            " --rama-sheet-mixing-energy $(cat " + self.upside_param_dir + "/ff_1/sheet)" + \
-            " --reference-state-rama " + self.upside_param_dir + "/common/rama_reference.pkl"
+        upside_config_cmd = (
+            self.upside_py_dir + "/upside_config.py"
+            " --output "
+            + self.output_name
+            + " --fasta "
+            + self.fasta_file
+            + " --hbond-energy $(cat "
+            + self.upside_param_dir
+            + "/ff_1/hbond)"
+            + " --dynamic-rotamer-1body "
+            + " --rotamer-placement "
+            + self.upside_param_dir
+            + "/ff_1/sidechain.h5"
+            + " --rotamer-interaction "
+            + self.upside_param_dir
+            + "/ff_1/sidechain.h5"
+            + " --environment "
+            + self.upside_param_dir
+            + "/ff_1/environment.h5"
+            + " --rama-library "
+            + self.upside_param_dir
+            + "/common/rama.dat"
+            + " --rama-sheet-mixing-energy $(cat "
+            + self.upside_param_dir
+            + "/ff_1/sheet)"
+            + " --reference-state-rama "
+            + self.upside_param_dir
+            + "/common/rama_reference.pkl"
+        )
         # generate mdrun command
-        run_cmd = self.upside_obj + \
-            " --duration " + self.duration + \
-            " --frame-interval " + self.frame_interval + \
-            " --temperature " + self.temperature + \
-            " --seed $RANDOM " + \
-            self.output_name + "\n"
+        run_cmd = (
+            self.upside_obj
+            + " --duration "
+            + self.duration
+            + " --frame-interval "
+            + self.frame_interval
+            + " --temperature "
+            + self.temperature
+            + " --seed $RANDOM "
+            + self.output_name
+            + "\n"
+        )
         if self.start_name is not None:
-            pdb_process_cmd = self.upside_py_dir + \
-                "/PDB_to_initial_structure.py " + self.start_name + " " + \
-                self.output_basename + "\n"
-            upside_config_cmd += " --initial-structure " + self.output_basename + ".initial.pkl\n"
+            pdb_process_cmd = (
+                self.upside_py_dir
+                + "/PDB_to_initial_structure.py "
+                + self.start_name
+                + " "
+                + self.output_basename
+                + "\n"
+            )
+            upside_config_cmd += (
+                " --initial-structure " + self.output_basename + ".initial.pkl\n"
+            )
             cmds = [pdb_process_cmd, upside_config_cmd, run_cmd]
         else:
-            cmds = [upside_config_cmd+"\n", run_cmd]
+            cmds = [upside_config_cmd + "\n", run_cmd]
         # combine commands and submit to submission object
         try:
             cmds.append(self.processing_obj.run(self.output_name, "frame0_aligned.xtc"))
             cmds.append(self.processing_obj.run(self.output_name, "frame0_masses.xtc"))
         except:
             pass
-#        print(cmds)
+        #        print(cmds)
         job_id = self.submission_obj.run(cmds, output_dir=output_dir)
         return job_id
-        
-

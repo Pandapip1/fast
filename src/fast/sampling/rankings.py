@@ -12,7 +12,8 @@
 
 
 import enspara.tpt
-#import msmbuilder.tpt
+
+# import msmbuilder.tpt
 import numpy as np
 import time
 import scipy.sparse as spar
@@ -37,9 +38,11 @@ def _evens_select_states(unique_states, n_clones):
     # generate states to simulate list
     repeat_states_to_simulate = np.repeat(unique_states, clones_per_state)
     remainder_states_to_simulate = np.random.choice(
-        unique_states, remainder_states, replace=False)
+        unique_states, remainder_states, replace=False
+    )
     total_states_to_simulate = np.concatenate(
-        [repeat_states_to_simulate, remainder_states_to_simulate])
+        [repeat_states_to_simulate, remainder_states_to_simulate]
+    )
     return total_states_to_simulate
 
 
@@ -71,8 +74,15 @@ def _unbias_state_selection(states, rankings, n_selections, select_max=True):
 
 
 def _select_states_spreading(
-        rankings, unique_states, n_clones, centers, distance_metric,
-        select_max=True, width=1.0, non_overlap=True):
+    rankings,
+    unique_states,
+    n_clones,
+    centers,
+    distance_metric,
+    select_max=True,
+    width=1.0,
+    non_overlap=True,
+):
     """Selects states that maximize ranking and are structurally unique.
     This proceeds as follows: 1) select a state that maximizes the
     ranking 2) penalize states that are structurally similar to
@@ -97,7 +107,7 @@ def _select_states_spreading(
         Gaussian width for calculating penalties.
     non_overlap : bool, default = True
         Optionally ensure that states are not sampled with replacement.
-    
+
     Returns
     ----------
     states_to_simulate : array, shape=(n_clones,)
@@ -105,30 +115,32 @@ def _select_states_spreading(
     """
     # pick the first state
     states_to_simulate = [
-        _unbias_state_selection(
-            unique_states, rankings, 1, select_max=select_max)[0]]
+        _unbias_state_selection(unique_states, rankings, 1, select_max=select_max)[0]
+    ]
     # initialize distance list
     dist_list = []
     # iterate state selection
-    for num in range(n_clones-1):
+    for num in range(n_clones - 1):
         # get distances to previously selected states
         dist_list.append(
-            distance_metric(
-                centers[unique_states], centers[states_to_simulate[-1]]))
+            distance_metric(centers[unique_states], centers[states_to_simulate[-1]])
+        )
         # convert distances to gaussian penalties
         gaussian_weights = np.sum(
             [
-                (1 - np.exp(-(dists**2)/float(2.0*(width**2))))
-                for dists in dist_list], axis=0) / len(dist_list)
+                (1 - np.exp(-(dists**2) / float(2.0 * (width**2))))
+                for dists in dist_list
+            ],
+            axis=0,
+        ) / len(dist_list)
         # generate new rankings
         new_rankings = rankings + gaussian_weights
         # if only selecting new states, zero the rankings of those
         # previously selected
         if non_overlap:
             states_to_zero = np.array(
-                [
-                    np.where(unique_states == state)[0]
-                    for state in states_to_simulate])
+                [np.where(unique_states == state)[0] for state in states_to_simulate]
+            )
             if select_max:
                 new_rankings[states_to_zero] = 0
             else:
@@ -136,7 +148,9 @@ def _select_states_spreading(
         # pick next state
         states_to_simulate.append(
             _unbias_state_selection(
-                unique_states, new_rankings, 1, select_max=select_max)[0])
+                unique_states, new_rankings, 1, select_max=select_max
+            )[0]
+        )
     # numpy it and return
     states_to_simulate = np.array(states_to_simulate)
     return states_to_simulate
@@ -175,24 +189,25 @@ def generate_aij(tcounts, spreading=False):
     if not spar.isspmatrix(tcounts):
         iis = np.where(tcounts != 0)
         tcounts = spar.coo_matrix(
-            (tcounts[iis], iis), shape=(len(tcounts), len(tcounts)))
+            (tcounts[iis], iis), shape=(len(tcounts), len(tcounts))
+        )
     else:
         tcounts = tcounts.tocoo()
     # get row and col information
     row_info = tcounts.row
     col_info = tcounts.col
     tcounts.data = np.zeros(len(tcounts.data)) + 1
-    tcounts.setdiag(0) # Sets diagonal to zero
+    tcounts.setdiag(0)  # Sets diagonal to zero
     tcounts = tcounts.tocsr()
     tcounts.eliminate_zeros()
     # optionally does spreading
     if spreading:
-        tcounts = (tcounts + tcounts.T) / 2.
-        aij = normalize(tcounts, norm='l1', axis=1)
+        tcounts = (tcounts + tcounts.T) / 2.0
+        aij = normalize(tcounts, norm="l1", axis=1)
     else:
         # Set 0 connections to 1 (
         # this doesn't change anything and avoids dividing by zero)
-        connections = tcounts.sum(axis = 1)
+        connections = tcounts.sum(axis=1)
         iis = np.where(connections == 0)
         connections[iis] = 1
         # Convert 1/Connections to sparse matrix format
@@ -200,14 +215,15 @@ def generate_aij(tcounts, spreading=False):
         con_len = len(connections)
         iis = (np.array(range(con_len)), np.array(range(con_len)))
         inv_connections = spar.coo_matrix(
-            (connections**-1, iis), shape=(con_len, con_len))
+            (connections**-1, iis), shape=(con_len, con_len)
+        )
         aij = tcounts.transpose() * inv_connections
     return aij
 
 
 def rank_aij(aij, d=0.85, Pi=None, max_iters=100000, norm=True):
     """Ranks the adjacency matrix.
-    
+
     Parameters
     ----------
     aij : matrix
@@ -231,7 +247,7 @@ def rank_aij(aij, d=0.85, Pi=None, max_iters=100000, norm=True):
     # if Pi is None, set it to 1/total states
     if Pi is None:
         Pi = np.zeros(int(N))
-        Pi[:] = 1/N
+        Pi[:] = 1 / N
     # set error for page ranks
     error = 1 / N**2
     # first pass of rankings
@@ -248,10 +264,11 @@ def rank_aij(aij, d=0.85, Pi=None, max_iters=100000, norm=True):
         # error out if does not converge
         if iters > max_iters:
             raise ConvergenceWarning(
-                'page ranking failed to converge in %s steps' % max_iters)
+                "page ranking failed to converge in %s steps" % max_iters
+            )
     # normalize rankings
     if norm:
-        page_rank *= 100./page_rank.sum()
+        page_rank *= 100.0 / page_rank.sum()
     return page_rank
 
 
@@ -272,8 +289,7 @@ class evens(base):
 
     @property
     def config(self):
-        return {
-        }
+        return {}
 
     def rank(self, msm, unique_states=None):
         return None
@@ -288,8 +304,8 @@ class base_ranking(base):
     independent rankings"""
 
     def __init__(
-            self, maximize_ranking=True, state_centers=None,
-            distance_metric=None, width=1.0):
+        self, maximize_ranking=True, state_centers=None, distance_metric=None, width=1.0
+    ):
         self.maximize_ranking = maximize_ranking
         self.state_centers = state_centers
         self.distance_metric = distance_metric
@@ -310,20 +326,26 @@ class base_ranking(base):
             # if not enought non-`nan` states are discivered, performs evens
             if len(non_nan_rank_iis) < n_clones:
                 states_to_simulate = _evens_select_states(
-                    unique_states[non_nan_rank_iis], n_clones)
+                    unique_states[non_nan_rank_iis], n_clones
+                )
             else:
                 if (self.state_centers is None) or (self.distance_metric is None):
                     states_to_simulate = _unbias_state_selection(
                         unique_states[non_nan_rank_iis],
-                        rankings[non_nan_rank_iis], n_clones,
-                        select_max=self.maximize_ranking)
+                        rankings[non_nan_rank_iis],
+                        n_clones,
+                        select_max=self.maximize_ranking,
+                    )
                 else:
                     states_to_simulate = _select_states_spreading(
                         rankings[non_nan_rank_iis],
-                        unique_states[non_nan_rank_iis], n_clones,
+                        unique_states[non_nan_rank_iis],
+                        n_clones,
                         centers=self.state_centers,
                         distance_metric=self.distance_metric,
-                        select_max=self.maximize_ranking, width=self.width)
+                        select_max=self.maximize_ranking,
+                        width=self.width,
+                    )
         return states_to_simulate
 
 
@@ -331,8 +353,15 @@ class page_ranking(base_ranking):
     """page ranking. ri = (1-d)*init_ranks + d*aij"""
 
     def __init__(
-            self, d, init_pops=True, max_iters=100000, norm=True,
-            spreading=False, maximize_ranking=True, **kwargs):
+        self,
+        d,
+        init_pops=True,
+        max_iters=100000,
+        norm=True,
+        spreading=False,
+        maximize_ranking=True,
+        **kwargs
+    ):
         """
         Parameters
         ----------
@@ -353,8 +382,7 @@ class page_ranking(base_ranking):
         self.max_iters = max_iters
         self.norm = norm
         self.spreading = spreading
-        base_ranking.__init__(
-            self, maximize_ranking=maximize_ranking, **kwargs)
+        base_ranking.__init__(self, maximize_ranking=maximize_ranking, **kwargs)
 
     @property
     def class_name(self):
@@ -363,12 +391,12 @@ class page_ranking(base_ranking):
     @property
     def config(self):
         return {
-            'd': self.d,
-            'init_pops': self.init_pops,
-            'max_iters': self.max_iters,
-            'norm': self.norm,
-            'spreading': self.spreading,
-            'maximize_ranking': self.maximize_ranking,
+            "d": self.d,
+            "init_pops": self.init_pops,
+            "max_iters": self.max_iters,
+            "norm": self.norm,
+            "spreading": self.spreading,
+            "maximize_ranking": self.maximize_ranking,
         }
 
     def rank(self, msm, unique_states=None):
@@ -384,7 +412,8 @@ class page_ranking(base_ranking):
         else:
             Pi = None
         rankings = rank_aij(
-            aij, d=self.d, Pi=Pi, max_iters=self.max_iters, norm=self.norm)
+            aij, d=self.d, Pi=Pi, max_iters=self.max_iters, norm=self.norm
+        )
         return rankings
 
 
@@ -394,8 +423,7 @@ class counts(base_ranking):
 
     def __init__(self, maximize_ranking=False, scaling=None, **kwargs):
         self.scaling = scaling
-        base_ranking.__init__(
-            self, maximize_ranking=maximize_ranking, **kwargs)
+        base_ranking.__init__(self, maximize_ranking=maximize_ranking, **kwargs)
 
     @property
     def class_name(self):
@@ -404,7 +432,7 @@ class counts(base_ranking):
     @property
     def config(self):
         return {
-            'maximize_ranking': self.maximize_ranking,
+            "maximize_ranking": self.maximize_ranking,
         }
 
     def rank(self, msm, unique_states=None):
@@ -421,12 +449,16 @@ class FAST(base_ranking):
     """FAST ranking object"""
 
     def __init__(
-            self, state_rankings=None,
-            directed_scaling = scalings.feature_scale(maximize=True),
-            statistical_component = counts(),
-            statistical_scaling = scalings.feature_scale(maximize=False),
-            alpha = 1, alpha_percent=False, maximize_ranking=True,
-            **kwargs):
+        self,
+        state_rankings=None,
+        directed_scaling=scalings.feature_scale(maximize=True),
+        statistical_component=counts(),
+        statistical_scaling=scalings.feature_scale(maximize=False),
+        alpha=1,
+        alpha_percent=False,
+        maximize_ranking=True,
+        **kwargs
+    ):
         """
         Parameters
         ----------
@@ -456,9 +488,9 @@ class FAST(base_ranking):
         self.alpha_percent = alpha_percent
         if self.alpha_percent and ((self.alpha < 0) or (self.alpha > 1)):
             raise ImproperlyConfigured(
-                'alpha_percent is selected, although alpha is not between 0 and 1!')
-        base_ranking.__init__(
-            self, maximize_ranking=maximize_ranking, **kwargs)
+                "alpha_percent is selected, although alpha is not between 0 and 1!"
+            )
+        base_ranking.__init__(self, maximize_ranking=maximize_ranking, **kwargs)
 
     @property
     def class_name(self):
@@ -467,13 +499,13 @@ class FAST(base_ranking):
     @property
     def config(self):
         return {
-            'state_ranking': self.state_rankings,
-            'directed_scaling': self.directed_scaling,
-            'statistical_component': self.statistical_component,
-            'statistical_scaling': self.statistical_scaling,
-            'alpha': self.alpha,
-            'alpha_percent': self.alpha_percent,
-            'maximize_ranking': self.maximize_ranking
+            "state_ranking": self.state_rankings,
+            "directed_scaling": self.directed_scaling,
+            "statistical_component": self.statistical_component,
+            "statistical_scaling": self.statistical_scaling,
+            "alpha": self.alpha,
+            "alpha_percent": self.alpha_percent,
+            "maximize_ranking": self.maximize_ranking,
         }
 
     def rank(self, msm, unique_states=None):
@@ -486,17 +518,18 @@ class FAST(base_ranking):
             # get statistical component
             statistical_ranking = self.statistical_component.rank(msm)
             # scale the statistical weights
-            statistical_weights = self.statistical_scaling.scale(
-                statistical_ranking)
+            statistical_weights = self.statistical_scaling.scale(statistical_ranking)
         # scale the directed weights
         directed_weights = self.directed_scaling.scale(
-            self.state_rankings[unique_states])
+            self.state_rankings[unique_states]
+        )
         # determine rankings
         if self.alpha_percent:
-            total_rankings = (1-self.alpha)*directed_weights + \
-                self.alpha*statistical_weights
+            total_rankings = (
+                1 - self.alpha
+            ) * directed_weights + self.alpha * statistical_weights
         else:
-            total_rankings = directed_weights + self.alpha*statistical_weights
+            total_rankings = directed_weights + self.alpha * statistical_weights
         return total_rankings
 
 
@@ -520,14 +553,19 @@ class string(base_ranking):
         high statistical components, i.e. favor states with high
         counts (unlikely to be desireable).
     """
+
     def __init__(
-            self, start_states, end_states, statistical_component=None,
-            maximize_ranking=False, **kwargs):
+        self,
+        start_states,
+        end_states,
+        statistical_component=None,
+        maximize_ranking=False,
+        **kwargs
+    ):
         self.start_states = start_states
         self.end_states = end_states
         self.statistical_component = statistical_component
-        base_ranking.__init__(
-            self, maximize_ranking=maximize_ranking, **kwargs)
+        base_ranking.__init__(self, maximize_ranking=maximize_ranking, **kwargs)
 
     @property
     def class_name(self):
@@ -536,10 +574,10 @@ class string(base_ranking):
     @property
     def config(self):
         return {
-            'start_states': self.start_states,
-            'end_states': self.end_states,
-            'statistical_component': self.statistical_component,
-            'maximize_ranking': self.maximize_ranking,
+            "start_states": self.start_states,
+            "end_states": self.end_states,
+            "statistical_component": self.statistical_component,
+            "maximize_ranking": self.maximize_ranking,
         }
 
     def rank(self, msm, unique_states=None):
@@ -557,18 +595,15 @@ class string(base_ranking):
         else:
             tprobs = msm.tprobs_
         nfm = enspara.tpt.net_fluxes(
-            tprobs, self.start_states,
-            self.end_states, populations=msm.eq_probs_)
-        path, flux = msmbuilder.tpt.top_path(
-            self.start_states, self.end_states, nfm)
+            tprobs, self.start_states, self.end_states, populations=msm.eq_probs_
+        )
+        path, flux = msmbuilder.tpt.top_path(self.start_states, self.end_states, nfm)
         # make all non-pathway states `nan`
         path_states = np.unique(path.flatten())
         path_iis = np.array(
-            [
-                np.where(unique_states == path_state)[0][0]
-                for path_state in path])
+            [np.where(unique_states == path_state)[0][0] for path_state in path]
+        )
         non_path_iis = np.setdiff1d(range(len(unique_states)), path_iis)
         new_rankings = np.array(np.copy(statistical_ranking), dtype=float)
         new_rankings[non_path_iis] = np.nan
         return new_rankings
-

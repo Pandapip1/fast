@@ -43,8 +43,8 @@ class RMSDWrap(base_analysis):
     output_name : str,
         The file containing rankings.
     """
-    def __init__(
-            self, base_struct, atom_indices=None):
+
+    def __init__(self, base_struct, atom_indices=None):
         # determine base_struct
         self.base_struct = base_struct
         if type(base_struct) is md.Trajectory:
@@ -65,8 +65,8 @@ class RMSDWrap(base_analysis):
     @property
     def config(self):
         return {
-            'base_struct': self.base_struct,
-            'atom_indices': self.atom_indices,
+            "base_struct": self.base_struct,
+            "atom_indices": self.atom_indices,
         }
 
     @property
@@ -84,8 +84,10 @@ class RMSDWrap(base_analysis):
         else:
             # load centers
             centers = md.load(
-                "./data/full_centers.xtc", top=self.base_struct_md,
-                atom_indices=self.atom_indices_vals)
+                "./data/full_centers.xtc",
+                top=self.base_struct_md,
+                atom_indices=self.atom_indices_vals,
+            )
             # get subset if necessary
             if self.atom_indices_vals is None:
                 struct_sub = self.base_struct_md
@@ -94,4 +96,3 @@ class RMSDWrap(base_analysis):
             # calculate and save rmsds
             rmsds = md.rmsd(centers, struct_sub)
             np.save(self.output_name, rmsds)
-        

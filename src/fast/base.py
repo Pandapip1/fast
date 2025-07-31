@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class base:
     def __init__(self):
         pass
@@ -14,7 +15,8 @@ class base:
         # convert config keys and values to a list, where each element
         # is "key=value,"
         s_inputs = np.array(
-            [str("%s=%s,") % (k,v) for (k,v) in list(zip(keys, values))])
+            [str("%s=%s,") % (k, v) for (k, v) in list(zip(keys, values))]
+        )
         # specify the maximum line length for output
         max_l_len = 79
         # initialize string output and length of first line
@@ -33,4 +35,3 @@ class base:
         # parenthesis
         s_out = s_out[:-2] + ")"
         return s_out
-

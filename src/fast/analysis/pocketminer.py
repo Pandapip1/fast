@@ -7,7 +7,10 @@ import numpy as np
 import os
 from fast.analysis.base_analysis import base_analysis
 
-from fast.pocketminer.validate_performance_on_xtals import process_strucs, predict_on_xtals
+from fast.pocketminer.validate_performance_on_xtals import (
+    process_strucs,
+    predict_on_xtals,
+)
 
 from validate_performance_on_xtals import process_strucs, predict_on_xtals
 import tempfile
@@ -18,40 +21,43 @@ from scipy.spatial import Delaunay
 import numpy as np
 from scipy.spatial import Voronoi, ConvexHull
 
+
 def make_predictions(strucs, model, nn_path):
-    '''
+    """
     strucs : list of single frame MDTraj trajectories
     model : MQAModel corresponding to network in nn_path
     nn_path : path to checkpoint files
-    '''
+    """
     X, S, mask = process_strucs(strucs)
     predictions = predict_on_xtals(model, nn_path, X, S, mask)
     return predictions
 
+
 # From http://proteinsandproteomics.org/content/free/tables_1/table08.pdf
 # In angstrom cubed
 van_der_waals = {
-    'A': 67,
-    'R': 148,
-    'N': 96,
-    'D': 91,
-    'C': 86,
-    'E': 114,
-    'Q': 109,
-    'G': 48,
-    'H': 118,
-    'I': 124,
-    'L': 124,
-    'K': 135,
-    'M': 124,
-    'F': 135,
-    'P': 90,
-    'S': 73,
-    'T': 93,
-    'W': 163,
-    'Y': 141,
-    'V': 105,
+    "A": 67,
+    "R": 148,
+    "N": 96,
+    "D": 91,
+    "C": 86,
+    "E": 114,
+    "Q": 109,
+    "G": 48,
+    "H": 118,
+    "I": 124,
+    "L": 124,
+    "K": 135,
+    "M": 124,
+    "F": 135,
+    "P": 90,
+    "S": 73,
+    "T": 93,
+    "W": 163,
+    "Y": 141,
+    "V": 105,
 }
+
 
 def intersect_polyhedron_with_sphere(poly_points, center, radius):
     """
@@ -85,6 +91,7 @@ def intersect_polyhedron_with_sphere(poly_points, center, radius):
             return 0.0
     else:
         return 0.0
+
 
 def physically_capped_voronoi_score(points, probs, radii, bond_length=2.8):
     """
@@ -129,7 +136,7 @@ def physically_capped_voronoi_score(points, probs, radii, bond_length=2.8):
             # Infinite region: assume a spherical residue
             # (Not a joke)
             cap_radius = radii[i] + bond_length
-            volumes[i] = (4/3) * np.pi * (cap_radius ** 3)
+            volumes[i] = (4 / 3) * np.pi * (cap_radius**3)
         else:
             try:
                 verts = vor.vertices[region]
@@ -139,6 +146,7 @@ def physically_capped_voronoi_score(points, probs, radii, bond_length=2.8):
                 volumes[i] = 0
 
     return np.sum(volumes * probs)
+
 
 class PocketMinerLikelihood(base_analysis):
     """
@@ -165,7 +173,13 @@ class PocketMinerLikelihood(base_analysis):
         HIDDEN_DIM = 100
 
         # MQA Model used for selected NN network
-        self.model = MQAModel(node_features=(8, 50), edge_features=(1, 32), hidden_dim=(16, HIDDEN_DIM), num_layers=NUM_LAYERS, dropout=DROPOUT_RATE)
+        self.model = MQAModel(
+            node_features=(8, 50),
+            edge_features=(1, 32),
+            hidden_dim=(16, HIDDEN_DIM),
+            num_layers=NUM_LAYERS,
+            dropout=DROPOUT_RATE,
+        )
 
     @property
     def class_name(self):
@@ -174,10 +188,10 @@ class PocketMinerLikelihood(base_analysis):
     @property
     def config(self):
         return {
-            'traj_path': self.traj_path,
-            'top_path': self.top_path,
-            'nn_path': self.nn_path,
-            'invert': self.invert
+            "traj_path": self.traj_path,
+            "top_path": self.top_path,
+            "nn_path": self.nn_path,
+            "invert": self.invert,
         }
 
     @property
@@ -194,7 +208,9 @@ class PocketMinerLikelihood(base_analysis):
         # Calculate scores
         scores = np.zeros(traj.n_frames)
         for i in range(traj.n_frames):
-            preds = make_predictions([ traj[i] ], self.model, self.nn_path)
-            scores[i] = physically_capped_voronoi_score(traj[i].xyz, preds, np.zeros(traj[i].xyz.shape[0]))
+            preds = make_predictions([traj[i]], self.model, self.nn_path)
+            scores[i] = physically_capped_voronoi_score(
+                traj[i].xyz, preds, np.zeros(traj[i].xyz.shape[0])
+            )
 
         np.save(self.output_name, scores)
