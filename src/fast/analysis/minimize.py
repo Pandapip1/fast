@@ -32,7 +32,8 @@ def _get_filenames(msm_dir):
     """Returns pdb filenames"""
     pdb_filenames = glob.glob(msm_dir + "/centers_masses/State*.pdb")
     pdb_filenames_full = np.array(
-        [os.path.abspath(filename) for filename in np.sort(pdb_filenames)])
+        [os.path.abspath(filename) for filename in np.sort(pdb_filenames)]
+    )
     return pdb_filenames_full
 
 
@@ -40,9 +41,9 @@ def _get_state_nums(pdb_filenames):
     """Determines the unique state numbers from pdb filenames"""
     state_nums = np.unique(
         np.array(
-            [
-                filename.split("State")[-1].split("-")[0]
-                for filename in pdb_filenames]))
+            [filename.split("State")[-1].split("-")[0] for filename in pdb_filenames]
+        )
+    )
     return state_nums
 
 
@@ -55,15 +56,15 @@ def _minimize_energy(minimize_info):
     pdb_base_name = pdb_filename.split("/")[-1].split(".pdb")[0]
     gro_output = output_folder + "/" + pdb_base_name + ".gro"
     # setup directory
-    cmd0 = 'mkdir ' + output_folder
+    cmd0 = "mkdir " + output_folder
     # source gromacs file if applicable. Must add to line before
     # gromacs command
     if minimize_obj.source_file is not None:
-        cmd1 = 'source ' + minimize_obj.source_file + '\n'
+        cmd1 = "source " + minimize_obj.source_file + "\n"
     else:
-        cmd1 = ''
+        cmd1 = ""
     # editconf command
-    cmd1 += 'gmx editconf -f ' + pdb_filename + ' -o ' + gro_output
+    cmd1 += "gmx editconf -f " + pdb_filename + " -o " + gro_output
     cmds = [cmd0, cmd1]
     _ = tools.run_commands(cmds, supress=True)
     pid = minimize_obj.run(gro_output, output_dir=output_folder)
@@ -85,12 +86,14 @@ def minimize_energies(minimize_obj, pdb_filenames, output_folder, n_cpus):
         The number of processes to use.
     """
     state_names = np.array(
-        [filename.split("/")[-1].split("-")[0] for filename in pdb_filenames])
+        [filename.split("/")[-1].split("-")[0] for filename in pdb_filenames]
+    )
     output_folders = np.array(
-        [output_folder + "/" + state_name for state_name in state_names])
+        [output_folder + "/" + state_name for state_name in state_names]
+    )
     minimize_info = list(
-        zip(
-            itertools.repeat(minimize_obj), pdb_filenames, output_folders))
+        zip(itertools.repeat(minimize_obj), pdb_filenames, output_folders)
+    )
     pool = Pool(processes=n_cpus)
     _ = pool.map(_minimize_energy, minimize_info)
     pool.terminate()
@@ -105,7 +108,7 @@ def _parse_log_for_energy(file_info):
     f.close()
     energy = None
     for line in f_data:
-        if line.split()[:3] == ['Potential', 'Energy', '=']:
+        if line.split()[:3] == ["Potential", "Energy", "="]:
             energy = float(line.split()[-1])
             break
     return energy
@@ -152,14 +155,20 @@ class MinimizeWrap(base_analysis):
     output_name : str,
         The filename of the final rankings.
     """
-    def __init__(
-            self, top_file, mdp_file, n_cpus=1, build_full=True, **kwargs):
+
+    def __init__(self, top_file, mdp_file, n_cpus=1, build_full=True, **kwargs):
         self.top_file = top_file
         self.mdp_file = mdp_file
         self.n_cpus = n_cpus
         self.g_obj = Gromax(
-            top_file=top_file, mdp_file=mdp_file, n_cpus=1, n_gpus=None,
-            submission_obj=SPSub(wait=True), min_run=True, **kwargs)
+            top_file=top_file,
+            mdp_file=mdp_file,
+            n_cpus=1,
+            n_gpus=None,
+            submission_obj=SPSub(wait=True),
+            min_run=True,
+            **kwargs
+        )
         self.build_full = build_full
 
     @property
@@ -169,12 +178,12 @@ class MinimizeWrap(base_analysis):
     @property
     def config(self):
         return {
-            'top_file': self.top_file,
-            'mdp_file': self.mdp_file,
-            'n_cpus': self.n_cpus,
-            'build_full': self.build_full,
-            'g_obj': self.g_obj
-        }   
+            "top_file": self.top_file,
+            "mdp_file": self.mdp_file,
+            "n_cpus": self.n_cpus,
+            "build_full": self.build_full,
+            "g_obj": self.g_obj,
+        }
 
     @property
     def analysis_folder(self):
@@ -193,21 +202,20 @@ class MinimizeWrap(base_analysis):
             pdb_filenames = _get_filenames(self.msm_dir)
             # optionally minimize all structures
             if self.build_full:
-                cmd = ['mkdir ' + self.output_folder]
+                cmd = ["mkdir " + self.output_folder]
                 _ = tools.run_commands(cmd)
                 minimize_energies(
-                    self.g_obj, pdb_filenames, self.output_folder,
-                    self.n_cpus)
+                    self.g_obj, pdb_filenames, self.output_folder, self.n_cpus
+                )
             # minimize non-processed states
             else:
-                n_processed_states = len(
-                    glob.glob(self.output_folder + "/State*"))
+                n_processed_states = len(glob.glob(self.output_folder + "/State*"))
                 minimize_energies(
-                    self.g_obj, pdb_filenames[n_processed_states:],
-                    self.output_folder, self.n_cpus)
+                    self.g_obj,
+                    pdb_filenames[n_processed_states:],
+                    self.output_folder,
+                    self.n_cpus,
+                )
             # parses log files for energies and saves them
-            energies = parse_logs_for_energies(
-                self.output_folder, n_cpus=self.n_cpus)
+            energies = parse_logs_for_energies(self.output_folder, n_cpus=self.n_cpus)
             np.save(self.output_name, energies)
-        
-

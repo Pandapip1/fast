@@ -28,53 +28,54 @@ def _make_sbatch_lines(kwargs):
     keys = list(kwargs.keys())
     values = list(kwargs.values())
     additions = "\n".join(
-        [
-            '#SBATCH --' + i[0] + '=' + i[1] \
-            for i in np.transpose([keys, values])])
+        ["#SBATCH --" + i[0] + "=" + i[1] for i in np.transpose([keys, values])]
+    )
     return additions
 
 
 def _gen_header(
-        queue, n_tasks, n_cpus, exclusive, email, max_time, job_name,
-        mem_per_cpu, kwargs):
+    queue, n_tasks, n_cpus, exclusive, email, max_time, job_name, mem_per_cpu, kwargs
+):
     """Generates an sbatch header file"""
-    header = '#!/bin/bash\n\n'
-    header += '# specify resources\n' + \
-        '#SBATCH --ntasks=' + n_tasks + '\n'\
-        '#SBATCH --cpus-per-task=' + n_cpus + '\n'
+    header = "#!/bin/bash\n\n"
+    header += (
+        "# specify resources\n" + "#SBATCH --ntasks=" + n_tasks + "\n"
+        "#SBATCH --cpus-per-task=" + n_cpus + "\n"
+    )
     if mem_per_cpu is not None:
-        header += '#SBATCH --mem-per-cpu=' + str(mem_per_cpu) + '\n'
+        header += "#SBATCH --mem-per-cpu=" + str(mem_per_cpu) + "\n"
     if exclusive:
-        header += '#SBATCH --exclusive\n'
-    header += '\n# max wallclock time\n' + \
-        '#SBATCH --time=' + str(max_time) + ':00:00\n'
-    header += '\n# jobname\n' + \
-        '#SBATCH --job-name=' + job_name + '\n'
-    header += '\n# queue\n' + \
-        '#SBATCH --partition=' + queue + '\n'
+        header += "#SBATCH --exclusive\n"
+    header += (
+        "\n# max wallclock time\n" + "#SBATCH --time=" + str(max_time) + ":00:00\n"
+    )
+    header += "\n# jobname\n" + "#SBATCH --job-name=" + job_name + "\n"
+    header += "\n# queue\n" + "#SBATCH --partition=" + queue + "\n"
     if email is not None:
-        header += '\n# mail alert\n' + \
-            '#SBATCH --mail-type=ALL\n' + \
-            '#SBATCH --mail-user=' + email + '\n'
+        header += (
+            "\n# mail alert\n"
+            + "#SBATCH --mail-type=ALL\n"
+            + "#SBATCH --mail-user="
+            + email
+            + "\n"
+        )
     additions = _make_sbatch_lines(kwargs)
-    header += '\n# additional specs\n'
-    header += additions + '\n'
-    header += '\n'
+    header += "\n# additional specs\n"
+    header += additions + "\n"
+    header += "\n"
     return header
 
 
 def get_running_jobs():
     """Finds jobs that are currently running"""
     try:
-        squeue_output = tools.run_commands('squeue')[0]
+        squeue_output = tools.run_commands("squeue")[0]
         job_listing_information = squeue_output.split("\n")[:-1]
-        running_jobs = ra.RaggedArray(
-            [
-                s.split() for s in 
-                job_listing_information])[:,0]
-        if running_jobs[0] != 'JOBID':
-            raise UnexpectedResult(
-                'slurm queue wrapper failed to parse jobs!')
+        running_jobs = ra.RaggedArray([s.split() for s in job_listing_information])[
+            :, 0
+        ]
+        if running_jobs[0] != "JOBID":
+            raise UnexpectedResult("slurm queue wrapper failed to parse jobs!")
         else:
             running_jobs = running_jobs[1:]
     except:
@@ -83,8 +84,7 @@ def get_running_jobs():
         logger.log(squeue_output)
         logger.log(job_listing_information)
         logger.log(running_jobs)
-        raise UnexpectedResult(
-            'slurm queue wrapper failed to parse jobs!')
+        raise UnexpectedResult("slurm queue wrapper failed to parse jobs!")
     return np.array(running_jobs)
 
 
@@ -96,6 +96,7 @@ class SlurmWrap(base):
     max_n_procs : int, default = np.inf,
         The maximum number of jobs to be running at a time.
     """
+
     def __init__(self, max_n_procs=np.inf):
         self.max_n_procs = max_n_procs
 
@@ -105,9 +106,7 @@ class SlurmWrap(base):
 
     @property
     def config(self):
-        return {
-            'max_n_procs': self.max_n_procs
-        }
+        return {"max_n_procs": self.max_n_procs}
 
     def wait_for_pids(self, pids, wait_time=2, wait_for_all=False):
         # if waiting for all, the maximum number of procs running
@@ -138,7 +137,7 @@ class SlurmWrap(base):
         """Returns the submission file name"""
         if type(pids) is str:
             pids = [pids]
-        names = ['slurm-' + str(pid) + '.out' for pid in pids]
+        names = ["slurm-" + str(pid) + ".out" for pid in pids]
         return names
 
 
@@ -164,10 +163,20 @@ class SlurmSub(base):
     job_name : str, default = None,
         The name of the submission job.
     """
+
     def __init__(
-            self, queue, n_tasks=1, n_cpus=1, mem_per_cpu='4G',
-            exclusive=False, email=None,
-            max_time=1500, job_name=None, env_exports=None, **kwargs):
+        self,
+        queue,
+        n_tasks=1,
+        n_cpus=1,
+        mem_per_cpu="4G",
+        exclusive=False,
+        email=None,
+        max_time=1500,
+        job_name=None,
+        env_exports=None,
+        **kwargs
+    ):
         self.queue = str(queue)
         self.n_tasks = str(n_tasks)
         self.n_cpus = str(n_cpus)
@@ -176,7 +185,7 @@ class SlurmSub(base):
         self.email = email
         self.max_time = str(max_time)
         if job_name is None:
-            self.job_name = 'SlurmSub'
+            self.job_name = "SlurmSub"
         else:
             self.job_name = str(job_name)
         self.env_exports = env_exports
@@ -189,22 +198,31 @@ class SlurmSub(base):
     @property
     def config(self):
         config_dict = {
-            'queue': self.queue,
-            'n_tasks': self.n_tasks,
-            'n_cpus': self.n_cpus,
-            'mem_per_cpu': self.mem_per_cpu,
-            'exclusive': self.exclusive,
-            'email': self.email,
-            'max_time': self.max_time,
-            'job_name': self.job_name}
+            "queue": self.queue,
+            "n_tasks": self.n_tasks,
+            "n_cpus": self.n_cpus,
+            "mem_per_cpu": self.mem_per_cpu,
+            "exclusive": self.exclusive,
+            "email": self.email,
+            "max_time": self.max_time,
+            "job_name": self.job_name,
+        }
         config_dict.update(self.kwargs)
         return config_dict
 
     def run(self, cmds, output_dir=None, output_name=None):
         # generate header file
         header = _gen_header(
-            self.queue, self.n_tasks, self.n_cpus, self.exclusive, self.email,
-            self.max_time, self.job_name, self.mem_per_cpu, self.kwargs)
+            self.queue,
+            self.n_tasks,
+            self.n_cpus,
+            self.exclusive,
+            self.email,
+            self.max_time,
+            self.job_name,
+            self.mem_per_cpu,
+            self.kwargs,
+        )
         # add env exports
         if self.env_exports is not None:
             sub_file = header + self.env_exports
@@ -221,12 +239,12 @@ class SlurmSub(base):
         if output_dir is None:
             output_dir = os.path.abspath("./")
         if output_name is None:
-            output_name = 'slurm_submission'
+            output_name = "slurm_submission"
         os.chdir(output_dir)
         # write submission file
-        with open(output_name, 'w') as f:
+        with open(output_name, "w") as f:
             f.write(sub_file)
         # run submission file
-        job_sub = tools.run_commands('sbatch ' + output_name)[0].split()[-1]
+        job_sub = tools.run_commands("sbatch " + output_name)[0].split()[-1]
         os.chdir(home_dir)
         return job_sub

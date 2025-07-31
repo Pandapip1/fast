@@ -28,50 +28,42 @@ def _make_bsub_lines(kwargs):
     keys = list(kwargs.keys())
     values = list(kwargs.values())
     additions = "\n".join(
-        [
-            '#BSUB -' + i[0] + ' ' + i[1] \
-            for i in np.transpose([keys, values])])
+        ["#BSUB -" + i[0] + " " + i[1] for i in np.transpose([keys, values])]
+    )
     return additions
 
 
-def _gen_header(
-        queue, n_tasks, max_time, job_name, mem_per_cpu, kwargs):
+def _gen_header(queue, n_tasks, max_time, job_name, mem_per_cpu, kwargs):
     """Generates an bsub header file"""
-    header = '#!/bin/bash\n\n'
-    header += '# specify resources\n' + \
-        '#BSUB -n %d\n' % n_tasks
+    header = "#!/bin/bash\n\n"
+    header += "# specify resources\n" + "#BSUB -n %d\n" % n_tasks
     if mem_per_cpu is not None:
         header += '#BSUB -R "rusage[mem=%s]"\n' % mem_per_cpu
-    header += '\n# max wallclock time\n' + \
-        '#BSUB -W %d:00\n' % max_time
-    header += '\n# queue\n' + \
-        '#BSUB -q %s\n' % queue
-    header += '\n# name and output\n' + \
-        '#BSUB -J %s\n' % job_name
-    header += '#BSUB -o lsf_output-%J.log\n'
-    header += '#BSUB -e lsf_output-%J.log\n'
+    header += "\n# max wallclock time\n" + "#BSUB -W %d:00\n" % max_time
+    header += "\n# queue\n" + "#BSUB -q %s\n" % queue
+    header += "\n# name and output\n" + "#BSUB -J %s\n" % job_name
+    header += "#BSUB -o lsf_output-%J.log\n"
+    header += "#BSUB -e lsf_output-%J.log\n"
     additions = _make_bsub_lines(kwargs)
-    header += '\n# additional specs\n'
-    header += additions + '\n'
-    header += '\n'
+    header += "\n# additional specs\n"
+    header += additions + "\n"
+    header += "\n"
     return header
 
 
 def get_running_jobs():
     """Finds jobs that are currently running"""
     try:
-        bjobs_output = tools.run_commands('bjobs', supress=True)[0]
-        if bjobs_output == '':
-            running_jobs = ['']
+        bjobs_output = tools.run_commands("bjobs", supress=True)[0]
+        if bjobs_output == "":
+            running_jobs = [""]
         else:
             job_listing_information = bjobs_output.split("\n")[:-1]
-            running_jobs = ra.RaggedArray(
-                [
-                    s.split() for s in 
-                    job_listing_information])[:,0]
-            if running_jobs[0] != 'JOBID':
-                raise UnexpectedResult(
-                    'LSF queue wrapper failed to parse jobs!')
+            running_jobs = ra.RaggedArray([s.split() for s in job_listing_information])[
+                :, 0
+            ]
+            if running_jobs[0] != "JOBID":
+                raise UnexpectedResult("LSF queue wrapper failed to parse jobs!")
             else:
                 running_jobs = running_jobs[1:]
     except:
@@ -80,8 +72,7 @@ def get_running_jobs():
         logger.log(bjobs_output)
         logger.log(job_listing_information)
         logger.log(running_jobs)
-        raise UnexpectedResult(
-            'lsf queue wrapper failed to parse jobs!')
+        raise UnexpectedResult("lsf queue wrapper failed to parse jobs!")
     return np.array(running_jobs)
 
 
@@ -93,6 +84,7 @@ class LSFWrap(base):
     max_n_procs : int, default = np.inf,
         The maximum number of jobs to be running at a time.
     """
+
     def __init__(self, max_n_procs=np.inf):
         self.max_n_procs = max_n_procs
 
@@ -102,9 +94,7 @@ class LSFWrap(base):
 
     @property
     def config(self):
-        return {
-            'max_n_procs': self.max_n_procs
-        }
+        return {"max_n_procs": self.max_n_procs}
 
     def wait_for_pids(self, pids, wait_time=2, wait_for_all=False):
         # if waiting for all, the maximum number of procs running
@@ -135,7 +125,7 @@ class LSFWrap(base):
         """Returns the submission file name"""
         if type(pids) is str:
             pids = [pids]
-        names = ['lsf_output-%d.log' % int(pid) for pid in pids]
+        names = ["lsf_output-%d.log" % int(pid) for pid in pids]
         return names
 
 
@@ -155,15 +145,16 @@ class LSFSub(base):
     job_name : str, default = None,
         The name of the submission job.
     """
+
     def __init__(
-            self, queue, n_tasks=1, mem_per_cpu=None,
-            max_time=1500, job_name=None, **kwargs):
+        self, queue, n_tasks=1, mem_per_cpu=None, max_time=1500, job_name=None, **kwargs
+    ):
         self.queue = str(queue)
         self.n_tasks = n_tasks
         self.mem_per_cpu = mem_per_cpu
         self.max_time = max_time
         if job_name is None:
-            self.job_name = 'LSF_Sub'
+            self.job_name = "LSF_Sub"
         else:
             self.job_name = str(job_name)
         self.kwargs = kwargs
@@ -175,19 +166,25 @@ class LSFSub(base):
     @property
     def config(self):
         config_dict = {
-            'queue': self.queue,
-            'n_tasks': self.n_tasks,
-            'mem_per_cpu': self.mem_per_cpu,
-            'max_time': self.max_time,
-            'job_name': self.job_name}
+            "queue": self.queue,
+            "n_tasks": self.n_tasks,
+            "mem_per_cpu": self.mem_per_cpu,
+            "max_time": self.max_time,
+            "job_name": self.job_name,
+        }
         config_dict.update(self.kwargs)
         return config_dict
 
     def run(self, cmds, output_dir=None, output_name=None):
         # generate header file
         header = _gen_header(
-            self.queue, self.n_tasks, self.max_time, self.job_name,
-            self.mem_per_cpu, self.kwargs)
+            self.queue,
+            self.n_tasks,
+            self.max_time,
+            self.job_name,
+            self.mem_per_cpu,
+            self.kwargs,
+        )
         # add commands
         if type(cmds) is str:
             sub_file = header + cmds
@@ -200,13 +197,13 @@ class LSFSub(base):
         if output_dir is None:
             output_dir = os.path.abspath("./")
         if output_name is None:
-            output_name = 'lsf_submission'
+            output_name = "lsf_submission"
         os.chdir(output_dir)
         # write submission file
-        with open(output_name, 'w') as f:
+        with open(output_name, "w") as f:
             f.write(sub_file)
         # run submission file
-        job_sub = tools.run_commands('bsub < ' + output_name)[0]
+        job_sub = tools.run_commands("bsub < " + output_name)[0]
         job_id = job_sub.split()[1].split("<")[-1].split(">")[0]
         os.chdir(home_dir)
         return job_id

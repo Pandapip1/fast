@@ -14,10 +14,10 @@
 import glob
 import itertools
 import mdtraj as md
-import mdtraj_upside as mu # has function for parsing Upside trajectories into MDTraj
+import mdtraj_upside as mu  # has function for parsing Upside trajectories into MDTraj
 import numpy as np
 import os
-import upside_engine as ue # computing energies 
+import upside_engine as ue  # computing energies
 from .base_analysis import base_analysis
 from .. import tools
 
@@ -40,8 +40,8 @@ class UpsideEnergyWrap(base_analysis):
     output_name : str,
         The file containing rankings.
     """
-    def __init__(
-            self, sim_filename):
+
+    def __init__(self, sim_filename):
         # determine base_struct
         self.sim_filename = os.path.abspath(sim_filename)
 
@@ -52,7 +52,7 @@ class UpsideEnergyWrap(base_analysis):
     @property
     def config(self):
         return {
-            'sim_filename': self.sim_filename,
+            "sim_filename": self.sim_filename,
         }
 
     @property
@@ -69,12 +69,11 @@ class UpsideEnergyWrap(base_analysis):
             pass
         else:
             # load centers
-            centers = md.load(
-                "./data/full_centers.xtc", top="./prot_masses.pdb")
+            centers = md.load("./data/full_centers.xtc", top="./prot_masses.pdb")
             pos = mu.extract_bb_pos_angstroms(centers)
             engine = ue.Upside(self.sim_filename)
             # calculate and save energies
             energies = np.zeros(centers.n_frames)
             for i, pos_i in enumerate(pos):
                 energies[i] = engine.energy(pos_i)
-            np.save(self.output_name, energies)        
+            np.save(self.output_name, energies)

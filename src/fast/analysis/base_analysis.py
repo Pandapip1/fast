@@ -26,6 +26,7 @@ class base_analysis(base):
     a loader for rankings, and a function to set the output
     to a specific gen number and MSM location.
     """
+
     def __init__(self):
         pass
 
@@ -44,6 +45,12 @@ class base_analysis(base):
         if self.analysis_folder is not None:
             self.output_folder = msm_dir + "/" + self.analysis_folder
         # set ranking output
-        self.output_name = msm_dir + "/" + self.ranking_folder + "/" + \
-            self.base_output_name + str(gen_num) + ".npy"
-
+        self.output_name = (
+            msm_dir
+            + "/"
+            + self.ranking_folder
+            + "/"
+            + self.base_output_name
+            + str(gen_num)
+            + ".npy"
+        )

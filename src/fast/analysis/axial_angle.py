@@ -22,47 +22,68 @@ import math
 # code
 #######################################################################
 
+
 def dot_product(x, y):
     return sum([x[i] * y[i] for i in range(len(x))])
+
 
 def norm(x):
     return np.sqrt(dot_product(x, x))
 
+
 def normalize(x):
     return [x[i] / norm(x) for i in range(len(x))]
+
 
 def project_onto_plane(x, n):
     d = dot_product(x, n) / norm(n)
     p = [d * normalize(n)[i] for i in range(len(n))]
     return [x[i] - p[i] for i in range(len(x))]
 
-def angle(v1, v2):
-    return np.arccos(np.sum(v1 * v2, axis=1) / (np.linalg.norm(v1, axis=1) * np.linalg.norm(v2, axis=1)))
 
-def _calculate_axial_angle(traj, ref_struct1, ref_struct2,
-                           ref1_sel1, ref1_sel2,
-                           ref2_sel2,
-                           traj_sel1, traj_sel2):
+def angle(v1, v2):
+    return np.arccos(
+        np.sum(v1 * v2, axis=1)
+        / (np.linalg.norm(v1, axis=1) * np.linalg.norm(v2, axis=1))
+    )
+
+
+def _calculate_axial_angle(
+    traj,
+    ref_struct1,
+    ref_struct2,
+    ref1_sel1,
+    ref1_sel2,
+    ref2_sel2,
+    traj_sel1,
+    traj_sel2,
+):
     """
     traj: the trajectory being analyzed
     ref_struct1: structure 1 used to build plane (this will be the structure you compute the anlge relative to)
     ref_struct2 structure 2 used to build plane
     ref1_sel1 (etc): residues used to build a point of a vector (in the format of, for example 'residue 1 and name CA')
     """
-    p1 = md.compute_center_of_mass(ref_struct1.atom_slice(ref_struct1.top.select(ref1_sel1)))
-    p2 = md.compute_center_of_mass(ref_struct1.atom_slice(ref_struct1.top.select(ref1_sel2)))
-    p3 = md.compute_center_of_mass(ref_struct2.atom_slice(ref_struct2.top.select(ref2_sel2)))
+    p1 = md.compute_center_of_mass(
+        ref_struct1.atom_slice(ref_struct1.top.select(ref1_sel1))
+    )
+    p2 = md.compute_center_of_mass(
+        ref_struct1.atom_slice(ref_struct1.top.select(ref1_sel2))
+    )
+    p3 = md.compute_center_of_mass(
+        ref_struct2.atom_slice(ref_struct2.top.select(ref2_sel2))
+    )
 
-    v1 = p2-p1
-    v2 = p3-p1
+    v1 = p2 - p1
+    v2 = p3 - p1
 
     cross = np.cross(v1, v2)
 
     p1_traj = md.compute_center_of_mass(traj.atom_slice(traj.top.select(traj_sel1)))
     p2_traj = md.compute_center_of_mass(traj.atom_slice(traj.top.select(traj_sel2)))
-    vec_traj = p2_traj-p1_traj
+    vec_traj = p2_traj - p1_traj
 
-    proj_vec=[]
+    proj_vec = []
     for e in vec_traj:
         v = project_onto_plane(e, cross[0])
         proj_vec.append(v)
@@ -70,10 +91,15 @@ def _calculate_axial_angle(traj, ref_struct1, ref_struct2,
     angs = np.rad2deg(angle(np.array(proj_vec), v1))
     return angs
 
+
 def _align_to_ref1(traj, ref1, alignment_sel_string_ref1, alignment_sel_string_traj):
-    traj.superpose(ref1, ref_atom_indices=ref1.top.select(alignment_sel_string_ref1),
-        atom_indices=traj.top.select(alignment_sel_string_traj))
+    traj.superpose(
+        ref1,
+        ref_atom_indices=ref1.top.select(alignment_sel_string_ref1),
+        atom_indices=traj.top.select(alignment_sel_string_traj),
+    )
     return traj
+
 
 class AxialAngleWrap(base_analysis):
     """Computes an axial angle for a selected region based on two reference structures.
@@ -111,10 +137,20 @@ class AxialAngleWrap(base_analysis):
     output_name : str,
         The file containing rankings.
     """
+
     def __init__(
-            self, ref_struct1, ref_struct2, ref1_sel1, ref1_sel2, ref2_sel1,
-            traj_sel1, traj_sel2, alignment_sel_string_ref1,
-            alignment_sel_string_traj, base_struct=None):
+        self,
+        ref_struct1,
+        ref_struct2,
+        ref1_sel1,
+        ref1_sel2,
+        ref2_sel1,
+        traj_sel1,
+        traj_sel2,
+        alignment_sel_string_ref1,
+        alignment_sel_string_traj,
+        base_struct=None,
+    ):
         # load in reference structures
         if type(ref_struct1) is str:
             self.ref_struct1 = md.load(ref_struct1)
@@ -125,23 +161,22 @@ class AxialAngleWrap(base_analysis):
         else:
             self.ref_struct2 = ref_struct2
         # load in selection strings needed for defining points
-        with open(ref1_sel1, 'r') as f:
+        with open(ref1_sel1, "r") as f:
             self.ref1_sel1 = f.read()
-        with open(ref1_sel2, 'r') as f:
+        with open(ref1_sel2, "r") as f:
             self.ref1_sel2 = f.read()
-        with open(ref2_sel1, 'r') as f:
+        with open(ref2_sel1, "r") as f:
             self.ref2_sel1 = f.read()
-        with open(traj_sel1, 'r') as f:
+        with open(traj_sel1, "r") as f:
             self.traj_sel1 = f.read()
-        with open(traj_sel2, 'r') as f:
+        with open(traj_sel2, "r") as f:
             self.traj_sel2 = f.read()
-        with open(traj_sel2, 'r') as f:
+        with open(traj_sel2, "r") as f:
             self.traj_sel2 = f.read()
-        with open(alignment_sel_string_ref1, 'r') as f:
+        with open(alignment_sel_string_ref1, "r") as f:
             self.alignment_sel_string_ref1 = f.read()
-        with open(alignment_sel_string_traj, 'r') as f:
+        with open(alignment_sel_string_traj, "r") as f:
             self.alignment_sel_string_traj = f.read()
-
 
     @property
     def class_name(self):
@@ -150,8 +185,8 @@ class AxialAngleWrap(base_analysis):
     @property
     def config(self):
         return {
-            'ref_struct1': self.ref_struct1,
-            'ref_struct2': self.ref_struct2,
+            "ref_struct1": self.ref_struct1,
+            "ref_struct2": self.ref_struct2,
         }
 
     @property
@@ -168,12 +203,22 @@ class AxialAngleWrap(base_analysis):
             pass
         else:
             # load centers
-            centers = md.load(
-                "./data/full_centers.xtc", top="./prot_masses.pdb")
+            centers = md.load("./data/full_centers.xtc", top="./prot_masses.pdb")
             # align centers to ref struct 1
-            _align_to_ref1(centers, self.ref_struct1, self.alignment_sel_string_ref1, self.alignment_sel_string_traj)
-            angles = _calculate_axial_angle(centers, self.ref_struct1, self.ref_struct2,
-                                            self.ref1_sel1, self.ref1_sel2,
-                                            self.ref2_sel1,
-                                            self.traj_sel1, self.traj_sel2)
+            _align_to_ref1(
+                centers,
+                self.ref_struct1,
+                self.alignment_sel_string_ref1,
+                self.alignment_sel_string_traj,
+            )
+            angles = _calculate_axial_angle(
+                centers,
+                self.ref_struct1,
+                self.ref_struct2,
+                self.ref1_sel1,
+                self.ref1_sel2,
+                self.ref2_sel1,
+                self.traj_sel1,
+                self.traj_sel2,
+            )
             np.save(self.output_name, angles)

@@ -32,7 +32,8 @@ def _get_filenames(msm_dir):
     """Returns pdb filenames"""
     pdb_filenames = glob.glob(msm_dir + "/centers_masses/state*.pdb")
     pdb_filenames_full = np.array(
-        [os.path.abspath(filename) for filename in np.sort(pdb_filenames)])
+        [os.path.abspath(filename) for filename in np.sort(pdb_filenames)]
+    )
     return pdb_filenames_full
 
 
@@ -42,32 +43,34 @@ def _save_pocket_element(save_info):
     # gather save info
     pocket_element, state_name, output_folder = save_info
     # make state analysis directory and save pdb coords
-    _ = tools.run_commands('mkdir ' + output_folder)
+    _ = tools.run_commands("mkdir " + output_folder)
     pok_output_name = output_folder + "/" + state_name + "_pockets.pdb"
     pok_details_output_name = output_folder + "/pocket_sizes.dat"
     if pocket_element is not None:
         pocket_element.save_pdb(pok_output_name)
         # generate pocket size array (first element is the total size)
         pok_sizes = np.array(
-            [len(list(resi.atoms)) for resi in list(pocket_element.top.residues)])
+            [len(list(resi.atoms)) for resi in list(pocket_element.top.residues)]
+        )
         pok_sizes = np.append(pok_sizes.sum(), pok_sizes)
         # save pocket sizes
-        np.savetxt(pok_details_output_name, pok_sizes, fmt='%d')
+        np.savetxt(pok_details_output_name, pok_sizes, fmt="%d")
     else:
-        #Recent update to enspara returns None for no pockets instead of empty MDtraj traj
-        pocket_element=md.Trajectory(np.zeros((0,3)),md.Topology())
+        # Recent update to enspara returns None for no pockets instead of empty MDtraj traj
+        pocket_element = md.Trajectory(np.zeros((0, 3)), md.Topology())
         pocket_element.save_pdb(pok_output_name)
     return
-    
 
-def save_pocket_elements(
-        pocket_func, centers, pdb_filenames, output_folder, n_procs):
+
+def save_pocket_elements(pocket_func, centers, pdb_filenames, output_folder, n_procs):
     """Function to calculate and save pocket elements / pocket info"""
     # determine the base state name and output folders tp create
     state_names = np.array(
-        [filename.split("/")[-1].split("-")[0] for filename in pdb_filenames])
+        [filename.split("/")[-1].split("-")[0] for filename in pdb_filenames]
+    )
     output_folders = np.array(
-        [output_folder + "/" + state_name for state_name in state_names])
+        [output_folder + "/" + state_name for state_name in state_names]
+    )
     # calculate pockets
     pocket_elements = pocket_func(centers)
     # generate zipped info to send to helper
@@ -77,7 +80,7 @@ def save_pocket_elements(
     pool.map(_save_pocket_element, save_info)
     pool.terminate()
     return
-    
+
 
 def _parse_pocket_file(pocket_info):
     """Helper to parse pocket data file for a pocket volume."""
@@ -95,7 +98,7 @@ def _parse_pocket_file(pocket_info):
 
 class TopPockets:
     """Reports pocket volume of a particular pocket.
-    
+
     Parameters
     ----------
     pocket_number : int, default=None,
@@ -106,7 +109,6 @@ class TopPockets:
     def __init__(self, pocket_number=None, n_cpus=1):
         self.pocket_number = pocket_number
         self.n_cpus = n_cpus
-
 
     def parse_pockets(self, pockets_dir):
         """Searches through output directory for pocket_size files and
@@ -124,7 +126,7 @@ class TopPockets:
 
 class ResiduePockets:
     """Reports pocket volume around selected residues.
-    
+
     Parameters
     ----------
     atom_indices : array-like, shape=(n_atoms, ),
@@ -141,8 +143,7 @@ class ResiduePockets:
             try:
                 self.atom_indices = np.loadtxt(self.atom_indices, dtype=int)
             except:
-                self.atom_indices = np.array(
-                    np.load(self.atom_indices), dtype=int)
+                self.atom_indices = np.array(np.load(self.atom_indices), dtype=int)
         self.distance_cutoff = distance_cutoff
         self.n_cpus = n_cpus
 
@@ -156,19 +157,23 @@ class ResiduePockets:
         # parallelize the parsing
         file_info = list(
             zip(
-                pdb_files, pocket_files,
+                pdb_files,
+                pocket_files,
                 itertools.repeat(self.atom_indices),
-                itertools.repeat(self.distance_cutoff)))
+                itertools.repeat(self.distance_cutoff),
+            )
+        )
         pool = Pool(processes=self.n_cpus)
         pockets = pool.map(_determine_neighboring_pockets, file_info)
         pool.terminate()
         return np.array(pockets)
 
+
 class SpecificPockets:
     """Reports pocket volume around selected atom indices.
     Pocket grid points must be surrounded by the selected
     atom indices to be counted.
-    
+
     Parameters
     ----------
     atom_indices : array-like, shape=(n_atoms, ),
@@ -179,14 +184,14 @@ class SpecificPockets:
     n_cpus : int, default=1,
         The number of cpus to use for determining pocket volumes.
     """
+
     def __init__(self, atom_indices, closest_surrounding_atoms_threshold=5, n_cpus=1):
         self.atom_indices = atom_indices
         if isinstance(self.atom_indices, (str)):
             try:
                 self.atom_indices = np.loadtxt(self.atom_indices, dtype=int)
             except:
-                self.atom_indices = np.array(
-                    np.load(self.atom_indices), dtype=int)
+                self.atom_indices = np.array(np.load(self.atom_indices), dtype=int)
         self.closest_surrounding_atoms_threshold = closest_surrounding_atoms_threshold
         self.n_cpus = n_cpus
 
@@ -200,14 +205,16 @@ class SpecificPockets:
         # parallelize the parsing
         file_info = list(
             zip(
-                pdb_files, pocket_files,
+                pdb_files,
+                pocket_files,
                 itertools.repeat(self.atom_indices),
-                itertools.repeat(self.closest_surrounding_atoms_threshold)))
+                itertools.repeat(self.closest_surrounding_atoms_threshold),
+            )
+        )
         pool = Pool(processes=self.n_cpus)
         pockets = pool.map(_determine_pocket_neighbors, file_info)
         pool.terminate()
         return np.array(pockets)
-
 
 
 def _determine_neighboring_pockets(file_info):
@@ -219,13 +226,16 @@ def _determine_neighboring_pockets(file_info):
     close_iis = []
     for n in np.arange(pdb_xyz.shape[0]):
         diffs = np.abs(pdb_pockets_xyz - pdb_xyz[n])
-        dists = np.sqrt(np.einsum('ij,ij->i', diffs, diffs))
+        dists = np.sqrt(np.einsum("ij,ij->i", diffs, diffs))
         close_iis.append(np.where(dists < distance_cutoff)[0])
     close_iis = np.unique(np.concatenate(close_iis))
     return len(close_iis)
 
+
 def _determine_pocket_neighbors(file_info):
-    pdb_filename, pocket_filename, atom_indices, closest_surrounding_atoms_threshold = file_info
+    pdb_filename, pocket_filename, atom_indices, closest_surrounding_atoms_threshold = (
+        file_info
+    )
     pdb = md.load(pdb_filename)
     pdb_pockets = md.load(pocket_filename)
     pdb_xyz = pdb.xyz[0]
@@ -233,7 +243,7 @@ def _determine_pocket_neighbors(file_info):
     pocket_volume = 0
     for pg in pdb_pockets_xyz:
         diff = np.abs(pdb_xyz - pg)
-        dist = np.sqrt(np.einsum('ij,ij->i', diff, diff))
+        dist = np.sqrt(np.einsum("ij,ij->i", diff, diff))
         top_n_closest_atoms = dist.argsort()[:closest_surrounding_atoms_threshold]
         if all([ix in atom_indices for ix in top_n_closest_atoms]):
             pocket_volume += 1
@@ -277,10 +287,19 @@ class PocketWrap(base_analysis):
     output_name : str,
         The filename of the final rankings.
     """
+
     def __init__(
-            self, pocket_reporter=None, grid_spacing=0.1, probe_radius=0.14,
-            min_rank=4, min_cluster_size=0, n_cpus=1, build_full=True,
-            atom_indices=None, **kwargs):
+        self,
+        pocket_reporter=None,
+        grid_spacing=0.1,
+        probe_radius=0.14,
+        min_rank=4,
+        min_cluster_size=0,
+        n_cpus=1,
+        build_full=True,
+        atom_indices=None,
+        **kwargs
+    ):
         self.pocket_reporter = pocket_reporter
         if self.pocket_reporter is None:
             self.pocket_reporter = TopPockets(n_cpus=n_cpus)
@@ -295,12 +314,15 @@ class PocketWrap(base_analysis):
             try:
                 self.atom_indices = np.loadtxt(self.atom_indices, dtype=int)
             except:
-                self.atom_indices = np.array(
-                    np.load(self.atom_indices), dtype=int)
+                self.atom_indices = np.array(np.load(self.atom_indices), dtype=int)
         self.pocket_func = partial(
-            pockets.get_pockets, grid_spacing=grid_spacing,
-            probe_radius=probe_radius, min_rank=min_rank,
-            min_cluster_size=min_cluster_size, n_procs=n_cpus)
+            pockets.get_pockets,
+            grid_spacing=grid_spacing,
+            probe_radius=probe_radius,
+            min_rank=min_rank,
+            min_cluster_size=min_cluster_size,
+            n_procs=n_cpus,
+        )
 
     @property
     def class_name(self):
@@ -309,15 +331,15 @@ class PocketWrap(base_analysis):
     @property
     def config(self):
         return {
-            'pocket_reporter': self.pocket_reporter,
-            'grid_spacing': self.grid_spacing,
-            'probe_radius': self.probe_radius,
-            'min_rank': self.min_rank,
-            'min_cluster_size': self.min_cluster_size,
-            'n_cpus': self.n_cpus,
-            'build_full': self.build_full,
-            'atom_indices': self.atom_indices
-        }   
+            "pocket_reporter": self.pocket_reporter,
+            "grid_spacing": self.grid_spacing,
+            "probe_radius": self.probe_radius,
+            "min_rank": self.min_rank,
+            "min_cluster_size": self.min_cluster_size,
+            "n_cpus": self.n_cpus,
+            "build_full": self.build_full,
+            "atom_indices": self.atom_indices,
+        }
 
     @property
     def analysis_folder(self):
@@ -337,27 +359,32 @@ class PocketWrap(base_analysis):
             # get the pdb centers
             centers = md.load(
                 self.msm_dir + "/data/full_centers.xtc",
-                top=self.msm_dir + "/prot_masses.pdb")
+                top=self.msm_dir + "/prot_masses.pdb",
+            )
             if self.atom_indices is not None:
                 centers = centers.atom_slice(self.atom_indices)
             # optionally determine pockets of all structures
             if self.build_full:
-                cmd = ['mkdir ' + self.output_folder]
+                cmd = ["mkdir " + self.output_folder]
                 _ = tools.run_commands(cmd)
                 save_pocket_elements(
-                    self.pocket_func, centers, pdb_filenames,
-                    self.output_folder, self.n_cpus)
+                    self.pocket_func,
+                    centers,
+                    pdb_filenames,
+                    self.output_folder,
+                    self.n_cpus,
+                )
             # determine pockets of all non-processed states
             else:
-                n_processed_states = len(
-                    glob.glob(self.output_folder + "/state*"))
+                n_processed_states = len(glob.glob(self.output_folder + "/state*"))
                 save_pocket_elements(
-                    self.pocket_func, centers[n_processed_states:],
-                    pdb_filenames[n_processed_states:], self.output_folder,
-                    self.n_cpus)
+                    self.pocket_func,
+                    centers[n_processed_states:],
+                    pdb_filenames[n_processed_states:],
+                    self.output_folder,
+                    self.n_cpus,
+                )
             # parses log files for pockets and save them
             pockets = self.pocket_reporter.parse_pockets(self.output_folder)
             print(self.output_name, pockets)
             np.save(self.output_name, pockets)
-        
-

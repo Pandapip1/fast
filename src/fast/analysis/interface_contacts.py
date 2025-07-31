@@ -28,8 +28,7 @@ import pickle
 #######################################################################
 
 
-def _calculate_number_of_contacts(traj, interface_list, dist_cutoff, 
-                                  verbose=False):
+def _calculate_number_of_contacts(traj, interface_list, dist_cutoff, verbose=False):
     """Compute the number of contacts at the specified interfaces
 
     Parameters
@@ -66,7 +65,7 @@ def _calculate_number_of_contacts(traj, interface_list, dist_cutoff,
 
             # returns distances for each residue-residue contact in each frame of the trajectory
             # distances is shape=(n_frames, n_pairs)
-            distances = md.compute_contacts(traj, rid_pairs, scheme='closest')[0]
+            distances = md.compute_contacts(traj, rid_pairs, scheme="closest")[0]
 
             contacts = contacts + np.sum(distances < dist_cutoff, axis=1)
 
@@ -74,10 +73,9 @@ def _calculate_number_of_contacts(traj, interface_list, dist_cutoff,
 
     if verbose:
         print(contacts_per_interface)
-        np.save('./data/contacts_per_interface.npy', contacts_per_interface)
+        np.save("./data/contacts_per_interface.npy", contacts_per_interface)
 
     return contacts_per_interface.sum(axis=1)
-
 
 
 class InterfaceContactWrap(base_analysis):
@@ -107,12 +105,11 @@ class InterfaceContactWrap(base_analysis):
     output_name : str,
         The file containing rankings.
     """
-    def __init__(
-            self, interface_list, dist_cutoff, 
-            verbose=False, base_struct=None):
+
+    def __init__(self, interface_list, dist_cutoff, verbose=False, base_struct=None):
         # load in interface list
         if type(interface_list) is str:
-            with open(interface_list, 'rb') as f:
+            with open(interface_list, "rb") as f:
                 self.interface_list = pickle.load(f)
         else:
             self.interface_list = interface_list
@@ -126,7 +123,7 @@ class InterfaceContactWrap(base_analysis):
     @property
     def config(self):
         return {
-            'interface_list': self.interface_list,
+            "interface_list": self.interface_list,
         }
 
     @property
@@ -143,10 +140,9 @@ class InterfaceContactWrap(base_analysis):
             pass
         else:
             # load centers
-            centers = md.load(
-                "./data/full_centers.xtc", top="./prot_masses.pdb")
+            centers = md.load("./data/full_centers.xtc", top="./prot_masses.pdb")
             # calculate and save contacts
-            scores = _calculate_number_of_contacts(centers,
-                self.interface_list, self.dist_cutoff,
-                verbose=self.verbose)
+            scores = _calculate_number_of_contacts(
+                centers, self.interface_list, self.dist_cutoff, verbose=self.verbose
+            )
             np.save(self.output_name, scores)
