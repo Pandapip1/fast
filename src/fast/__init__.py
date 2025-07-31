@@ -6,14 +6,10 @@ from .analysis.pockets import PocketWrap
 from .analysis.pockets import SpecificPockets
 from .analysis.distances import DistWrap
 from .analysis.specific_contacts import SpecificContactsWrap
-from .analysis.interface_contacts import InterfaceContactWrap
-from .analysis.interface_contacts_new import ContactCountWrap
+from .analysis.interface_contacts import InterfaceContactWrap, ContactCountWrap
 from .analysis.multi_interface_dissociation import (
     MultipleInterfaceDissociationWrap,
     ConstrainedTargetInterfaceDissociationWrap,
-)
-from .analysis.multi_interface_dissociation_new import (
-    MultipleInterfaceDissociationWrapNew,
 )
 from .analysis.axial_angle import AxialAngleWrap
 
