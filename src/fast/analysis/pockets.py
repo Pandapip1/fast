@@ -46,19 +46,19 @@ def _save_pocket_element(save_info):
     _ = tools.run_commands("mkdir " + output_folder)
     pok_output_name = output_folder + "/" + state_name + "_pockets.pdb"
     pok_details_output_name = output_folder + "/pocket_sizes.dat"
-    if pocket_element is not None:
-        pocket_element.save_pdb(pok_output_name)
-        # generate pocket size array (first element is the total size)
-        pok_sizes = np.array(
-            [len(list(resi.atoms)) for resi in list(pocket_element.top.residues)]
-        )
-        pok_sizes = np.append(pok_sizes.sum(), pok_sizes)
-        # save pocket sizes
-        np.savetxt(pok_details_output_name, pok_sizes, fmt="%d")
-    else:
+    if pocket_element is None:
         # Recent update to enspara returns None for no pockets instead of empty MDtraj traj
         pocket_element = md.Trajectory(np.zeros((0, 3)), md.Topology())
-        pocket_element.save_pdb(pok_output_name)
+    pocket_element.save_pdb(pok_output_name)
+
+    # generate pocket size array
+    pok_sizes = np.array(
+        [len(list(resi.atoms)) for resi in list(pocket_element.top.residues)]
+    )
+    # save pocket sizes
+    pok_details_output_name = output_folder + "/pocket_sizes.dat"
+    np.savetxt(pok_details_output_name, pok_sizes, fmt="%d")
+
     return
 
 
@@ -89,10 +89,9 @@ def _parse_pocket_file(pocket_info):
     # open file and take value at position `pocket_num`
     pocket_sizes = np.loadtxt(filename, dtype=int)
     if pocket_num is None:
-        # the first entry in pocket sizes is the sum of all pocket sizes
-        psize = pocket_sizes[0]
+        psize = np.sum(pocket_sizes)
     else:
-        psize = pocket_sizes[pocket_num]
+        psize = pocket_sizes[pocket_num - 1]
     return psize
 
 
