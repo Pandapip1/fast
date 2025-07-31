@@ -21,7 +21,7 @@ from multiprocessing import Pool
 
 
 def convert_to_string(binary):
-    return binary.decode('utf-8')
+    return binary.decode("utf-8")
 
 
 def _run_command(cmd_info):
@@ -29,7 +29,7 @@ def _run_command(cmd_info):
     cmd, supress = cmd_info
     p = sp.Popen(cmd, shell=True, stdout=sp.PIPE, stderr=sp.PIPE)
     output, err = p.communicate()
-    if convert_to_string(err) != '' and not supress:
+    if convert_to_string(err) != "" and not supress:
         print("\nERROR: " + convert_to_string(err))
         raise
     output = convert_to_string(output)
@@ -47,7 +47,7 @@ def run_commands(cmds, supress=False, n_procs=1):
             outputs.append(_run_command((cmd, supress)))
     else:
         cmd_info = list(zip(cmds, itertools.repeat(supress)))
-        pool = Pool(processes = n_procs)
+        pool = Pool(processes=n_procs)
         outputs = pool.map(_run_command, cmd_info)
         pool.terminate()
     return outputs

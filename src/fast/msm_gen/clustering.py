@@ -42,22 +42,24 @@ def load_trjs(trj_filenames, n_procs=1, **kwargs):
     """Parallelize loading trajectories from msm directory."""
     # get filenames
     trj_filenames_test = np.array(
-        [
-            os.path.abspath(f) 
-            for f in np.sort(np.array(glob.glob("trajectories/*.xtc")))])
+        [os.path.abspath(f) for f in np.sort(np.array(glob.glob("trajectories/*.xtc")))]
+    )
     t0 = time.time()
     diffs = np.setdiff1d(trj_filenames, trj_filenames_test)
     while diffs.shape[0] != 0:
         t1 = time.time()
         logging.info(
-            'waiting on nfs. missing %d files (%0.2f s)' % \
-            (trj_filenames.shape[0]-trj_filenames_test.shape[0], t1-t0))
+            "waiting on nfs. missing %d files (%0.2f s)"
+            % (trj_filenames.shape[0] - trj_filenames_test.shape[0], t1 - t0)
+        )
         time.sleep(15)
-        _ = tools.run_commands('ls trajectories/*.xtc')
+        _ = tools.run_commands("ls trajectories/*.xtc")
         trj_filenames_test = np.array(
             [
-                os.path.abspath(f) 
-                for f in np.sort(np.array(glob.glob("trajectories/*.xtc")))])
+                os.path.abspath(f)
+                for f in np.sort(np.array(glob.glob("trajectories/*.xtc")))
+            ]
+        )
         diffs = np.setdiff1d(trj_filenames, trj_filenames_test)
     # parallelize load with **kwargs
     partial_load = partial(md.load, **kwargs)
@@ -88,9 +90,16 @@ class ClusterWrap(base):
         Saving full cluster centers should be performed by save_states if this
         is set to True.
     """
+
     def __init__(
-            self, base_struct, base_clust_obj=None, atom_indices=None,
-            build_full=True, n_procs=1, mem_efficient=False):
+        self,
+        base_struct,
+        base_clust_obj=None,
+        atom_indices=None,
+        build_full=True,
+        n_procs=1,
+        mem_efficient=False,
+    ):
         # determine base_struct
         self.base_struct = base_struct
         if type(base_struct) is md.Trajectory:
@@ -99,8 +108,7 @@ class ClusterWrap(base):
             self.base_struct_md = md.load(base_struct)
         # determine base clustering object
         if base_clust_obj is None:
-            self.base_clust_obj = cluster.KCenters(
-                metric=md.rmsd, cluster_radius=1.0)
+            self.base_clust_obj = cluster.KCenters(metric=md.rmsd, cluster_radius=1.0)
         else:
             self.base_clust_obj = base_clust_obj
         # determine atom indices
@@ -111,8 +119,9 @@ class ClusterWrap(base):
             except ValueError:
                 print("\n")
                 logging.warning(
-                    ' Atom indices for clustering are not integers!'
-                    ' Attempting to convert to integers\n')
+                    " Atom indices for clustering are not integers!"
+                    " Attempting to convert to integers\n"
+                )
                 non_int_vals = np.loadtxt(atom_indices)
                 self.atom_indices_vals = np.array(non_int_vals, dtype=int)
                 # ensure no conversion error
@@ -128,12 +137,13 @@ class ClusterWrap(base):
     def check_clustering(self, msm_dir, gen_num, n_kids, verbose=True):
         correct_clustering = True
         total_assignments = (gen_num + 1) * n_kids
-        assignments = ra.load(msm_dir + '/data/assignments.h5')
-        n_assignments = len(assignments) 
+        assignments = ra.load(msm_dir + "/data/assignments.h5")
+        n_assignments = len(assignments)
         if total_assignments != n_assignments:
             correct_clustering = False
             logging.info(
-                "inconsistent number of trajectories between assignments and data!")
+                "inconsistent number of trajectories between assignments and data!"
+            )
         return correct_clustering
 
     @property
@@ -143,56 +153,60 @@ class ClusterWrap(base):
     @property
     def config(self):
         return {
-        'base_struct': self.base_struct,
-        'base_clust_obj': self.base_clust_obj,
-        'atom_indices': self.atom_indices,
-        'build_full': self.build_full,
-        'n_procs': self.n_procs,
-        'trj_filenames': self.trj_filenames,
-        'mem_efficient': self.mem_efficient,
+            "base_struct": self.base_struct,
+            "base_clust_obj": self.base_clust_obj,
+            "atom_indices": self.atom_indices,
+            "build_full": self.build_full,
+            "n_procs": self.n_procs,
+            "trj_filenames": self.trj_filenames,
+            "mem_efficient": self.mem_efficient,
         }
 
     def set_filenames(self, msm_dir):
         self.trj_filenames = np.sort(
-            np.array(glob.glob(msm_dir + "/trajectories/*.xtc")))
+            np.array(glob.glob(msm_dir + "/trajectories/*.xtc"))
+        )
         return
 
     def run(self):
         # load and concat trjs
         if self.mem_efficient:
             trj_lengths, xyzs = load_as_concatenated(
-                filenames=self.trj_filenames, processes=self.n_procs,
-                top=self.base_struct_md, atom_indices=self.atom_indices_vals)
+                filenames=self.trj_filenames,
+                processes=self.n_procs,
+                top=self.base_struct_md,
+                atom_indices=self.atom_indices_vals,
+            )
             trjs_sub = md.Trajectory(
-                xyzs, self.base_struct_md.atom_slice(self.atom_indices_vals).topology)
+                xyzs, self.base_struct_md.atom_slice(self.atom_indices_vals).topology
+            )
         else:
             trj_lengths, xyzs = load_as_concatenated(
-                filenames=self.trj_filenames, processes=self.n_procs,
-                top=self.base_struct_md)
+                filenames=self.trj_filenames,
+                processes=self.n_procs,
+                top=self.base_struct_md,
+            )
             trjs = md.Trajectory(xyzs, self.base_struct_md.topology)
             trjs_sub = trjs.atom_slice(self.atom_indices_vals)
         # determine if rebuilding all msm stuff
         if self.build_full:
-            base_struct_centers = self.base_struct_md.atom_slice(
-                self.atom_indices_vals)
+            base_struct_centers = self.base_struct_md.atom_slice(self.atom_indices_vals)
             base_struct_centers.save_pdb("./centers.pdb")
             self.base_struct_md.save_pdb("./prot_masses.pdb")
             init_centers = None
         else:
-            init_centers = md.load(
-                "./data/centers.xtc", top="./centers.pdb")
+            init_centers = md.load("./data/centers.xtc", top="./centers.pdb")
         # fit data with base clustering object
-        self.base_clust_obj.fit(
-            trjs_sub, init_centers=init_centers)
-        center_indices, distances, assignments, centers = \
+        self.base_clust_obj.fit(trjs_sub, init_centers=init_centers)
+        center_indices, distances, assignments, centers = (
             self.base_clust_obj.result_.partition(trj_lengths)
+        )
         # save data
         ra.save("./data/assignments.h5", assignments)
         ra.save("./data/distances.h5", distances)
         trjs_sub = trjs_sub[self.base_clust_obj.center_indices_]
         trjs_sub.superpose(trjs_sub[0])
-        trjs_sub.save_xtc(
-            "./data/centers.xtc")
+        trjs_sub.save_xtc("./data/centers.xtc")
         if not self.mem_efficient:
             full_centers = trjs[self.base_clust_obj.center_indices_]
             full_centers.superpose(self.base_struct_md)
@@ -201,5 +215,5 @@ class ClusterWrap(base):
         n_states = len(self.base_clust_obj.center_indices_)
         unique_states = np.arange(n_states)
         if init_centers is not None:
-            unique_states = unique_states[-(n_states-len(init_centers)):]
+            unique_states = unique_states[-(n_states - len(init_centers)) :]
         np.save("./data/unique_states.npy", unique_states)

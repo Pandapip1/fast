@@ -22,6 +22,7 @@ from fast.base import base
 
 class feature_scale(base):
     """Feature scales data: (x - xmin) / (xmax - xmin)"""
+
     def __init__(self, maximize=True):
         self.maximize = maximize
 
@@ -31,9 +32,7 @@ class feature_scale(base):
 
     @property
     def config(self):
-        return {
-            'maximize': self.maximize
-        }
+        return {"maximize": self.maximize}
 
     def scale(self, values):
         value_spread = values.max() - values.min()
@@ -49,14 +48,14 @@ class feature_scale(base):
 
 class sigmoid_scale:
     """Scales values with a sigmoid"""
+
     def __init__(self, maximize=True, a=3):
         self.maximize = maximize
         self.a = a
 
     def scale(self, values):
         sigma = np.median(values)
-        sig_scale = (1 + ((values/sigma)**self.a))**-1
+        sig_scale = (1 + ((values / sigma) ** self.a)) ** -1
         if self.maximize:
             sig_scale = 1 - sig_scale
         return sig_scale
-
