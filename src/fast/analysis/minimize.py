@@ -18,7 +18,7 @@ import numpy as np
 import os
 from .base_analysis import base_analysis
 from .. import tools
-from ..md_gen.gromax import Gromax
+from ..md_gen.gromacs import Gromacs
 from ..submissions.os_sub import SPSub, OSWrap
 from multiprocessing import Pool
 
@@ -160,7 +160,7 @@ class MinimizeWrap(base_analysis):
         self.top_file = top_file
         self.mdp_file = mdp_file
         self.n_cpus = n_cpus
-        self.g_obj = Gromax(
+        self.g_obj = Gromacs(
             top_file=top_file,
             mdp_file=mdp_file,
             n_cpus=1,
@@ -187,7 +187,7 @@ class MinimizeWrap(base_analysis):
 
     @property
     def analysis_folder(self):
-        return "gromax_minimize"
+        return "gromacs_minimize"
 
     @property
     def base_output_name(self):

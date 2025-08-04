@@ -74,7 +74,7 @@ def _gen_initial_sims(base_dir, initial_struct, trj_obj, n_kids, q_check_obj):
     initial_struct : str or md.Trajectory,
         The initial structure to start a swarn of sims from.
     trj_obj : object,
-        Simulation object used for simulations. See Gromax.
+        Simulation object used for simulations. See Gromacs.
     n_kids : int,
         Number of children gen will have.
     q_check_obj : object,
@@ -118,7 +118,7 @@ def _prop_sims(base_dir, trj_obj, gen_num, q_check_obj, new_states):
         The base adaptive sampling directory that will contain gen
         directories and the msm directory.
     trj_obj : object,
-        Simulation object used for simulations. See Gromax.
+        Simulation object used for simulations. See Gromacs.
     gen_num : int,
         The generation of sampling to propagate new simulations.
     q_check_obj : object,

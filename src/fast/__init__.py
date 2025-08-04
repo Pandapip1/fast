@@ -14,7 +14,7 @@ from .analysis.multi_interface_dissociation import (
 from .analysis.axial_angle import AxialAngleWrap
 
 # simulations wrapper
-from .md_gen.gromax import Gromax, GromaxProcessing
+from .md_gen.gromacs import Gromacs, GromacsProcessing
 
 # clustering wrapper
 from .msm_gen.clustering import ClusterWrap

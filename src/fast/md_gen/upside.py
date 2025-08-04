@@ -68,7 +68,7 @@ class Upside(base):
         to Max's install.
     processing_obj : object, default = None,
         Object that when run will output commands for processing
-        trajectory. Look at GromaxProcessing.
+        trajectory. Look at GromacsProcessing.
     submission_obj : object,
         Submission object used for running the simulation. Look into
         SlurmSub or OSSub.
