@@ -21,6 +21,9 @@ import pickle
 import scipy.io
 import subprocess as sp
 import time
+import tempfile
+import shutil
+import random
 from . import rankings
 from .. import tools
 from ..base import base
@@ -217,7 +220,7 @@ def _move_trjs(gen_dir, msm_dir, gen_num, n_kids):
     return
 
 
-def _pickle_submit(msm_dir, base_obj, sub_obj, q_check_obj, gen_num, base_name):
+def _pickle_submit(msm_dir, base_obj, sub_obj, q_check_obj, gen_num, base_name, submit_only=False):
     """Helper function for pickling an object and submitting it to run.
 
     Inputs
@@ -237,6 +240,8 @@ def _pickle_submit(msm_dir, base_obj, sub_obj, q_check_obj, gen_num, base_name):
     base_name : str,
         The base name of the job being submitted. Used to name the
         output files.
+    submit_only : bool, default=False
+        Flag to just run the analysis async and do nothing
     """
     # pickle object
     base_pickle = msm_dir + "/" + base_name + ".pkl"
@@ -261,6 +266,9 @@ def _pickle_submit(msm_dir, base_obj, sub_obj, q_check_obj, gen_num, base_name):
     base_submission = base_name + "_submission"
     # submit and wait for job to finish
     pid = sub_obj.run(cmds, output_name=base_submission)
+    if submit_only:
+        # TODO: Find a way to copy the files after submission
+        return
     q_check_obj.wait_for_pids([pid], wait_for_all=True)
     # clean up submission
     sub_script_name = q_check_obj.get_submission_names(pid)[0]
@@ -272,11 +280,12 @@ def _pickle_submit(msm_dir, base_obj, sub_obj, q_check_obj, gen_num, base_name):
         "submissions/" + base_name + "_gen" + ("%03d" % gen_num) + ".py"
     )
     base_sub_output = "submissions/" + base_submission + "_gen" + ("%03d" % gen_num)
-    cmd1 = "mv " + sub_script_name + " " + sub_output + " --backup=numbered"
+    cmd0 = "mkdir -p submissions"
+    cmd1 = "mv " + sub_script_name + " " + sub_output + " --backup=numbered" if os.path.exists(sub_script_name) else ""
     cmd2 = "mv " + base_pickle + " " + base_pickle_output + " --backup=numbered"
     cmd3 = "mv " + base_name + ".py" + " " + base_python_output + " --backup=numbered"
     cmd4 = "mv " + base_submission + " " + base_sub_output + " --backup=numbered"
-    cmds = [cmd1, cmd2, cmd3, cmd4]
+    cmds = [cmd0, cmd1, cmd2, cmd3, cmd4]
     _ = tools.run_commands(cmds)
     # change directory back to original
     os.chdir(home_dir)
@@ -388,7 +397,7 @@ def _move_cluster_data(msm_dir, rebuild_num, analysis_obj=None):
 
 
 def _perform_analysis(
-    analysis_obj, msm_dir, gen_num, sub_obj, q_check_obj, update_data
+    analysis_obj, msm_dir, gen_num, sub_obj, q_check_obj, update_data, submit_only=False
 ):
     """Performs analysis of cluster centers.
 
@@ -408,6 +417,8 @@ def _perform_analysis(
     update_data : bool,
         Flag for rebuilding whole analysis or analyzing a subset of
         structures.
+    submit_only : bool, default=False
+        Flag to just run the analysis async and do nothing
     """
     t0 = time.time()
     # determine if there is an analysis object
@@ -422,8 +433,11 @@ def _perform_analysis(
         # if the output doesn't exists, pickle submit analysis
         if not os.path.exists(analysis_obj.output_name):
             _pickle_submit(
-                msm_dir, analysis_obj, sub_obj, q_check_obj, gen_num, "analysis"
+                msm_dir, analysis_obj, sub_obj, q_check_obj, gen_num, "analysis", submit_only
             )
+        if submit_only:
+            # TODO: Find a way to add logging and the checks
+            return
         # get rankings
         state_rankings = analysis_obj.state_rankings
         # check that everything went well
@@ -497,6 +511,10 @@ class AdaptiveSampling(base):
     q_check_obj_sim : object, default=None,
         An object that handles checking queueing system for jobs that are
         still running.
+    addl_analysis_objs: object[], default=[]
+        A list of additional analysis objects to run. These won't have
+        any effect on the rankings but could be useful if you want to
+        extra information
     output_dir : str, default='adaptive_sampling',
         The output directory name for adaptive sampling run.
     """
@@ -518,6 +536,7 @@ class AdaptiveSampling(base):
         sub_obj=None,
         q_check_obj=None,
         q_check_obj_sim=None,
+        addl_analysis_objs=[],
         output_dir="adaptive_sampling",
         verbose=True,
     ):
@@ -565,6 +584,7 @@ class AdaptiveSampling(base):
             self.q_check_obj_sim = lsf_subs.LSFWrap()
         else:
             self.q_check_obj_sim = q_check_obj_sim
+        self.addl_analysis_objs = addl_analysis_objs
         self.output_dir = os.path.abspath(output_dir)
         self.msm_dir = self.output_dir + "/msm"
         self.verbose = verbose
@@ -589,6 +609,7 @@ class AdaptiveSampling(base):
             "sub_obj": self.sub_obj,
             "q_check_obj": self.q_check_obj,
             "q_check_obj_sim": self.q_check_obj_sim,
+            "addl_analysis_objs": self.addl_analysis_objs,
             "output_dir": self.output_dir,
             "verbose": self.verbose,
         }
@@ -869,6 +890,61 @@ class AdaptiveSampling(base):
         )
 
         ###########################################################
+        #               STEP 4.5 (other analysis)                 #
+        ###########################################################
+
+        # TODO: This could be made a lot faster with submit_only but copying over is a problem
+                
+        for p_gen_num in range(0, gen_num):
+            for analysis_obj in self.addl_analysis_objs:
+                logging.info(f"performing additional analysis for generation {p_gen_num} with {analysis_obj}")
+                with tempfile.TemporaryDirectory(dir=self.msm_dir, prefix="", suffix=".tmp") as msm_dir_tmp:
+                    for dirnm in [ "centers_masses", "centers_restarts", "data" ]:
+                        shutil.copytree(
+                            os.path.join(self.msm_dir, "old", f"{dirnm}{p_gen_num}"),
+                            os.path.join(msm_dir_tmp, dirnm),
+                        )
+                    shutil.copytree(
+                        os.path.join(self.msm_dir, "rankings"),
+                        os.path.join(msm_dir_tmp, "rankings"),
+                    )
+                    shutil.copy2(
+                        os.path.join(self.msm_dir, "prot_masses.pdb"),
+                        os.path.join(msm_dir_tmp, "prot_masses.pdb"),
+                    )
+                    try:
+                        _perform_analysis(
+                            analysis_obj,
+                            msm_dir_tmp,
+                            p_gen_num,
+                            self.sub_obj,
+                            self.q_check_obj,
+                            update_data
+                        )
+                    finally:
+                        shutil.copytree(
+                            os.path.join(msm_dir_tmp, "rankings"),
+                            os.path.join(self.msm_dir, "rankings"),
+                            dirs_exist_ok=True,
+                            copy_function=lambda src_file, dst_file:
+                                shutil.copy2(src_file, dst_file) if not os.path.exists(dst_file) else None
+                        )
+                        if os.path.exists(os.path.join(msm_dir_tmp, "submissions")):
+                            os.makedirs(os.path.join(self.msm_dir, "submissions", "otheran"), exist_ok=True)
+                            shutil.copytree(
+                                os.path.join(msm_dir_tmp, "submissions"),
+                                os.path.join(self.msm_dir, "submissions", "otheran", str(int(random.random() * 100000)))
+                            )
+        _perform_analysis(
+            analysis_obj,
+            self.msm_dir,
+            gen_num,
+            self.sub_obj,
+            self.q_check_obj,
+            update_data
+        )
+
+        ###########################################################
         #                  STEP 5 (MSM generation)                #
         ###########################################################
 
@@ -1008,6 +1084,22 @@ class AdaptiveSampling(base):
                 self.q_check_obj,
                 update_data,
             )
+
+            ###########################################################
+            #               STEP 4.5 (other analysis)                 #
+            ###########################################################
+
+            for analysis_obj in self.addl_analysis_objs:
+                logging.info(f"performing additional analysis with {analysis_obj}")
+                _perform_analysis(
+                    analysis_obj,
+                    self.msm_dir,
+                    gen_num,
+                    self.sub_obj,
+                    self.q_check_obj,
+                    update_data,
+                    submit_only=True
+                )
 
             ###########################################################
             #                  STEP 5 (MSM generation)                #
